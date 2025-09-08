@@ -1,6 +1,4 @@
-Flask
-Flask-Login
-Flask-SQLAlchemy
-Flask-WTF
+numpy
 pandas
-openpyxl
+scikit-learn
+matplotlib
