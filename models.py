@@ -34,4 +34,4 @@ def evaluate_models(X_train, X_test, y_train, y_test):
 
     return results
 
-print("Métricas dos Modelos:", result)
+# print("Métricas dos Modelos:", result)

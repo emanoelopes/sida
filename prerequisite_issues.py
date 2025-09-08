@@ -27,7 +27,7 @@ def identify_prerequisite_issues(df, pre_reqs, threshold=5.0):
 
         # Treinar o modelo Random Forest
         model = RandomForestRegressor(random_state=42)
-        model.fit(X_train, y_train)
+        model.fit(X_transformed, y)
 
         # Verificar a importância dos pré-requisitos
         importance = model.feature_importances_

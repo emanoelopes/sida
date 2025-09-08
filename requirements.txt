@@ -1,7 +1,12 @@
+Flask==2.3.3
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.0.5
+Flask-WTF==1.1.1
+WTForms==3.0.1
+Werkzeug==2.3.7
 joblib==1.5.2
 numpy==2.0.2
 pandas==2.3.2
-pkg_resources==0.0.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
 scikit-learn==1.6.1
@@ -9,3 +14,5 @@ scipy==1.13.1
 six==1.17.0
 threadpoolctl==3.6.0
 tzdata==2025.2
+openpyxl==3.1.2
+email-validator==2.3.0
