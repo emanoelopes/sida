@@ -1,11 +1,25 @@
 import streamlit as st
 
 
-st.sidebar.markdown('Desenvolvido por [Emanoel Lopes](http://emanoel.pro.br)')
+st.sidebar.markdown(
+    '''
+    Mestrado Profissional
+    PPGTE
+    IUVI 
+
+    Orientador: 
+    Prof. Leonardo Moreira
+    
+    Aluno:
+    [Emanoel Lopes](http://emanoel.pro.br)
+    '''
+    )
+
 st.markdown('# Sistema de Identificação de Dificuldades de Aprendizagem')
 st.divider()
 st.markdown(
     '''
+
     # Purpureo bracchia cognitus dedit
 
     ## Pedum ubi puer hunc
