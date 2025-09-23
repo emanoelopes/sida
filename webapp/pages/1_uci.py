@@ -81,8 +81,17 @@ plt.clf()
 
 #Bloxpot
 
+# Ocupação da mãe
 fig, ax = plt.subplots(figsize=(22, 8))
 
 sns.violinplot(data=df, x='Mjob')
 fig.suptitle('Ocupação da mãe', fontsize=20)
+st.pyplot(fig)
+
+
+# Nível de escolaridade da mãe
+fig, ax = plt.subplots(figsize=(22, 8))
+
+sns.violinplot(data=df, x='Medu')
+fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
