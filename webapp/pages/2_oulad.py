@@ -255,11 +255,11 @@ plt.clf()
 
 st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
 
-st.markdown("preparação dos dados para modelos de ML")
+st.markdown("Preparação dos dados para modelos de ML...")
 Y = merged_df['final_result']
 X = merged_df.loc[:, merged_df.columns != 'final_result']
 
-st.markdown('### Removendo as colunas irrelevantes ou com alta cardinalidade')
+st.markdown('Removendo as colunas irrelevantes ou com alta cardinalidade...')
 X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1)
 
 from sklearn.model_selection import train_test_split
@@ -303,3 +303,36 @@ ml_model = Pipeline(steps=[('preprocessor', preprocessor),
 
 # Train the model
 ml_model.fit(X_train_cleaned, y_train_cleaned)
+
+st.markdown("Modelo treinado com sucesso!")
+st.markdown("Avaliando do modelo...")
+
+predictions = ml_model.predict(X_test)
+from sklearn.metrics import confusion_matrix, classification_report
+
+st.write(classification_report(y_test, predictions, zero_division=0))
+st.write(confusion_matrix(y_test, predictions))
+
+st.markdown('## Analisando  a importância das classes (feature importance)')
+
+from sklearn.inspection import permutation_importance
+import pandas as pd
+
+# Drop rows with NaN in y_test
+nan_rows_test = y_test.isnull()
+X_test_cleaned = X_test[~nan_rows_test].copy()
+y_test_cleaned = y_test[~nan_rows_test].copy()
+
+result = permutation_importance(ml_model, X_test_cleaned, y_test_cleaned, n_repeats=10, random_state=42, n_jobs=2)
+sorted_idx = result.importances_mean.argsort()
+
+
+fig, ax = plt.subplots(figsize=(12, 8))
+
+ax.boxplot(result.importances[sorted_idx].T, vert=False, labels=X_test_cleaned.columns[sorted_idx])
+ax.set_title("Permutation Importances (test set)")
+fig.tight_layout()
+st.pyplot(fig)
+
+st.markdown("## Conclusão")
+st.markdown("Nesta análise exploratória dos dados do OULAD, conseguimos entender melhor o perfil dos estudantes, suas atividades na plataforma e os fatores que influenciam seu desempenho acadêmico. Através da visualização dos dados, identificamos padrões interessantes, como a predominância de estudantes do gênero masculino e a distribuição etária dos participantes. Além disso, o treinamento do modelo de aprendizado de máquina nos permitiu avaliar a importância das diferentes características dos dados, destacando quais fatores têm maior impacto no resultado final dos estudantes. Essas informações são valiosas para instituições educacionais que buscam melhorar a experiência de aprendizagem e o suporte oferecido aos alunos. Futuras análises podem aprofundar ainda mais esses insights, explorando outras variáveis e utilizando técnicas avançadas de modelagem preditiva.")
