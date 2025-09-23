@@ -20,7 +20,7 @@ st.markdown("Os conjuntos de dados no repositório UCI Machine Learning Reposito
 st.markdown("Em resumo, o UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.")
 
 datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
-st.write(f"Path dos datasets: {datasets_uci_path}")
+#st.write(f"Path dos datasets: {datasets_uci_path}")
 
 # Português
 por_path = os.path.join(datasets_uci_path, 'student-por.csv')
@@ -39,3 +39,50 @@ por['origem'] = 'por'
 df = pd.concat([mat, por])
 
 st.dataframe(df)
+
+st.markdown("Transformando valores e tipos de dados...")
+# Transformando valores e tipos de dados
+df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'})
+df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'})
+df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
+df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
+
+st.markdown("Explorando os valores numéricos")
+st.dataframe(df.select_dtypes('number').describe().T.round(2))
+
+st.markdown('# Análise descritiva de algumas colunas.')
+
+st.dataframe(df[['G1','G2','G3','studytime','absences']].select_dtypes('number').describe().T.round(2))
+
+st.markdown("Explorando os valores categóricos")
+st.dataframe(df.select_dtypes('object').describe().T)
+
+st.markdown('Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.')
+
+st.markdown('### Distribuicao do grau de formação dos pais em relação a nota final.')
+
+st.dataframe(df[['Medu', 'Fedu', 'G3']].value_counts(normalize=True).sort_index(level='G3', ascending=False))
+
+st.markdown('## Visualizando os dados')
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
+ax[0].set_title('Distribuição das Notas G1')
+sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
+ax[1].set_title('Distribuição das Notas G2')
+sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
+ax[2].set_title('Distribuição das Notas G3')
+plt.tight_layout()
+st.pyplot(fig)
+plt.clf()
+
+#Bloxpot
+
+fig, ax = plt.subplots(figsize=(22, 8))
+
+sns.violinplot(data=df, x='Mjob')
+fig.suptitle('Ocupação da mãe', fontsize=20)
+st.pyplot(fig)
