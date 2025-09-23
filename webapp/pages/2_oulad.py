@@ -176,11 +176,11 @@ st.write("Merged DataFrame after handling missing values:")
 st.dataframe(merged_df.isnull().sum())
 
 st.write('# Análise Exploratória de Dados (EDA) - OULAD')
-st.write('## Distribuição de Notas Finais dos Estudantes')
 
-st.markdown("#### Describe (Numerical Columns):")
+st.markdown("## Descrição estatísticas das colunas numéricas:")
 st.dataframe(merged_df.select_dtypes('number').describe().T.round(2))
 
+st.write('## Distribuição de Notas Finais dos Estudantes')
 plt.figure(figsize=(10, 6))
 sns.histplot(merged_df['score'], bins=30, kde=True)
 plt.title('Distribuição de Notas Finais dos Estudantes')
@@ -188,3 +188,118 @@ plt.xlabel('Nota Final')
 plt.ylabel('Frequência')
 st.pyplot(plt)
 plt.clf()
+
+st.write('## Distribuição de Atividades por Tipo')
+plt.figure(figsize=(10, 6))
+sns.countplot(data=merged_df, x='activity_type', order=merged_df['activity_type'].value_counts().index)
+plt.title('Distribuição de Atividades por Tipo')
+plt.xlabel('Tipo de Atividade')
+plt.ylabel('Contagem')
+plt.xticks(rotation=45)
+st.pyplot(plt)
+plt.clf()
+
+st.markdown('Explorando valores categóricos')
+## Explorando valores categóricos
+st.dataframe(merged_df.select_dtypes('object').describe().T)
+
+st.warning('Por meio da análise dos dados categóricos, os estudantes são, na sua maioria, do gênero masculino, até 35 anos, que realizaram a atividade do tipo fórum na plataforma e foram aprovados.')
+
+st.write('## Contagem de Estudantes por Região')
+plt.figure(figsize=(10, 6))
+sns.countplot(data=merged_df, x='region', order=merged_df['region'].value_counts().index)
+plt.title('Contagem de Estudantes por Região')
+plt.xlabel('Região')
+plt.ylabel('Contagem')
+plt.xticks(rotation=45)
+st.pyplot(plt)
+plt.clf()
+
+st.write('## Distribuição de Estudantes por Idade')
+plt.figure(figsize=(10, 6))
+sns.histplot(merged_df['age_band'], bins=30)
+plt.title('Distribuição de Estudantes por Idade')
+plt.xlabel('Idade')
+plt.ylabel('Frequência')
+st.pyplot(plt)
+plt.clf()
+
+st.write('## Distribuição de Estudantes por Gênero')
+plt.figure(figsize=(6, 6))
+sns.countplot(data=merged_df['gender'])
+plt.title('Distribuição de Estudantes por Gênero')
+plt.xlabel('Gênero')
+plt.ylabel('Contagem')
+st.pyplot(plt)
+plt.clf()
+
+st.write('## Distribuição de Estudantes por Região')
+plt.figure(figsize=(10, 6))
+sns.countplot(data=merged_df, x='region', order=merged_df['region'].value_counts().index)
+plt.title('Distribuição de Estudantes por Região')
+plt.xlabel('Região')
+plt.ylabel('Contagem')
+plt.xticks(rotation=45)
+st.pyplot(plt)
+plt.clf()
+
+st.write('## Distribuição dos Estudantes por Resultado Final')
+plt.figure(figsize=(6, 6))
+sns.countplot(data=merged_df['final_result'], order=merged_df['final_result'].value_counts().index)
+plt.title('Distribuição dos Estudantes por Resultado Final')
+plt.xlabel('Resultado Final')
+plt.ylabel('Contagem')
+st.pyplot(plt)
+plt.clf()
+
+
+st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
+
+st.markdown("preparação dos dados para modelos de ML")
+Y = merged_df['final_result']
+X = merged_df.loc[:, merged_df.columns != 'final_result']
+
+st.markdown('### Removendo as colunas irrelevantes ou com alta cardinalidade')
+X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+from re import M
+# treinamento do modelo
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+import pandas as pd
+
+# Drop rows with NaN in y_train
+nan_rows_train = y_train.isnull()
+X_train_cleaned = X_train[~nan_rows_train].copy()
+y_train_cleaned = y_train[~nan_rows_train].copy()
+
+# Identify categorical and numerical columns
+categorical_cols = X_train_cleaned.select_dtypes(include='object').columns
+numerical_cols = X_train_cleaned.select_dtypes(include=np.number).columns
+
+
+# Create a column transformer to apply different preprocessing steps to different column types
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', SimpleImputer(strategy='mean'), numerical_cols),
+        ('cat', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),
+            ('onehot', OneHotEncoder(handle_unknown='ignore'))]), categorical_cols)
+    ],
+    remainder='passthrough' # Keep other columns (numeric) as they are
+)
+
+# Create a pipeline that first preprocesses the data and then trains the model
+ml_model = Pipeline(steps=[('preprocessor', preprocessor),
+                           ('classifier', RandomForestClassifier(n_estimators=50, n_jobs=2, max_depth=4, random_state=42))])
+
+# Train the model
+ml_model.fit(X_train_cleaned, y_train_cleaned)
