@@ -23,10 +23,12 @@ datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
 st.write(f"Path dos datasets: {datasets_uci_path}")
 
 # Português
-por = pd.read_csv('student-por.csv', sep=';')
+por_path = os.path.join(datasets_uci_path, 'student-por.csv')
+por = pd.read_csv(por_path, sep=';')
 
 # Matemática
-mat = pd.read_csv('student-mat.csv', sep=';')
+mat_path = os.path.join(datasets_uci_path, 'student-mat.csv')
+mat = pd.read_csv(mat_path, sep=';')
 
 # Adicionando coluna com o conjunto de dados de origem
 mat['origem'] = 'mat'
