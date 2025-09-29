@@ -434,13 +434,13 @@ with st.sidebar: # ENHANCEMENT: Use 'with' context manager for sidebar clarity
 st.title("📈 Ferramenta de Análise de Dados")
 
 if not st.session_state.data_loaded or st.session_state.current_df is None:
-    st.info("👈 Upload a data file (CSV, Excel, PDF) using the sidebar to begin analysis.")
+    st.info("👈 Enviar um conjunto de dados (CSV, Excel, PDF) usando a barra lateral para iniciar a análise.")
     st.markdown("""
-    **Instructions:**
-    1.  Use the sidebar to upload your data file.
-    2.  If uploading a PDF with multiple tables, select the one you want to analyze from the sidebar dropdown.
-    3.  Use the **Analysis Options** in the sidebar to explore and clean your data.
-    4.  Toggle **Dark Mode** in the sidebar for your preferred viewing theme.
+    **instruções:**
+    1.  Use o botão na barra lateral para enviar o seu arquivo com o conjunto de dados que deseja analisar.
+    2.  Se desejar enviar um PDF com múltiplas tabelas, selecione uma para analisar na lista suspensa da barra lateral.
+    3.  Use as **Opções de Análise** na barra lateral para explorar e limpar seus dados.
+    4.  Ative o **Modo Escuro** na barra lateral para o tema de visualização que preferir.
     """)
 else:
     df = st.session_state.current_df # Work with the current dataframe
@@ -453,14 +453,14 @@ else:
         # ENHANCEMENT: Use st.columns for better layout
         col1, col2 = st.columns(2)
         with col1:
-            st.subheader("Basic Information")
-            st.write(f"**File Name:** `{st.session_state.uploaded_file_name}`")
+            st.subheader("Informação básica do conjunto de dados")
+            st.write(f"**Nome do Arquivo:** `{st.session_state.uploaded_file_name}`")
             if st.session_state.dataframes_list and len(st.session_state.dataframes_list) > 1:
-                st.write(f"**Selected Table:** `Table {st.session_state.selected_df_index + 1}`")
-            st.write(f"**Rows:** `{df.shape[0]}`")
-            st.write(f"**Columns:** `{df.shape[1]}`")
+                st.write(f"**Tabela Selecionada:** `Table {st.session_state.selected_df_index + 1}`")
+            st.write(f"**Linhas:** `{df.shape[0]}`")
+            st.write(f"**Colunas:** `{df.shape[1]}`")
         with col2:
-             st.subheader("Column Types")
+             st.subheader("Tipos de Colunas")
              # Improve display of dtypes
              st.dataframe(df.dtypes.astype(str).reset_index().rename(columns={'index': 'Column', 0: 'DataType'}), height=200, use_container_width=True, hide_index=True)
 
@@ -468,11 +468,11 @@ else:
         st.dataframe(df.head()) # Show first 5 rows by default
 
         # ENHANCEMENT: Use st.expander for download section
-        with st.expander("Download Data"):
-            st.markdown("Download the data *as currently displayed* (including any cleaning).")
+        with st.expander("Baixar Dados"):
+            st.markdown("Baixe os dados *conforme exibido atualmente* (incluindo qualquer limpeza).")
             csv_data = convert_df_to_csv(df) # Use cached function
             st.download_button(
-                label="⬇️ Download Data as CSV",
+                label="⬇️ Baixar Dados como CSV",
                 data=csv_data,
                 file_name=f"current_data_{st.session_state.uploaded_file_name.split('.')[0]}{'_T'+str(st.session_state.selected_df_index+1) if st.session_state.dataframes_list and len(st.session_state.dataframes_list)>1 else ''}.csv",
                 mime='text/csv',
@@ -481,10 +481,10 @@ else:
 
     # --- Data Cleaning ---
     elif analysis_type == 'Data Cleaning':
-        st.subheader("Handle Missing Values")
+        st.subheader("Tratar Valores Ausentes")
 
         # ENHANCEMENT: Use spinner for calculations if dataset is large
-        with st.spinner("Analyzing missing values..."):
+        with st.spinner("Analisando valores ausentes..."):
             missing_values = df.isnull().sum()
             missing_summary = missing_values[missing_values > 0].sort_values(ascending=False)
 
@@ -492,28 +492,28 @@ else:
         col1, col2 = st.columns([1, 2]) # Column for summary, column for options
 
         with col1:
-            st.write("**Missing Values Summary:**")
+            st.write("**Resumo de Valores Ausentes:**")
             if not missing_summary.empty:
-                st.dataframe(missing_summary.reset_index().rename(columns={'index': 'Column', 0: 'Missing Count'}), use_container_width=True, hide_index=True)
-                st.metric(label="Total Missing Values", value=f"{missing_summary.sum():,}") # Formatted number
+                st.dataframe(missing_summary.reset_index().rename(columns={'index': 'Coluna', 0: 'Contagem de Ausentes'}), use_container_width=True, hide_index=True)
+                st.metric(label="Total de Valores Ausentes", value=f"{missing_summary.sum():,}") # Formatted number
             else:
-                st.success("✅ No missing values found!")
+                st.success("✅ Nenhum valor ausente encontrado!")
 
-            if st.button("🔄 Reset to Original Data", key='reset_data', help="Discards all cleaning steps applied in this session."):
+            if st.button("🔄 Resetar para os Dados Originais", key='reset_data', help="Descarta todas as etapas de limpeza aplicadas nesta sessão."):
                 # ENHANCEMENT: Use spinner for reset action
-                with st.spinner("Resetting data..."):
+                with st.spinner("Resetando dados..."):
                     st.session_state.current_df = st.session_state.original_df.copy()
-                    st.success("Data reset to its original state.")
+                    st.success("Dados restaurados para o estado original.")
                 st.rerun() # Rerun to reflect the reset
 
         with col2:
             if not missing_summary.empty:
-                st.write("**Cleaning Options:**")
+                st.write("**Opções de Limpeza:**")
                 # FIX: Ensure unique keys for widgets if they might reappear
                 cleaning_strategy = st.radio(
-                    "Choose a strategy:",
-                    ('Drop rows with any missing values',
-                     'Drop columns with any missing values',
+                    "Escolha uma estratégia:",
+                    ('Remover linhas com valores ausentes',
+                     'Remover colunas com valores ausentes',
                      'Impute missing values (Fill)'),
                     key='clean_strategy_radio'
                 )
@@ -524,43 +524,43 @@ else:
 
                 if cleaning_strategy == 'Impute missing values (Fill)':
                     imputation_method = st.selectbox(
-                        "Imputation Method:",
-                        ('Mean (Numeric Only)', 'Median (Numeric Only)', 'Mode (Most Frequent)', 'Constant Value', 'Forward Fill (ffill)', 'Backward Fill (bfill)'), # Added ffill/bfill
+                        "Método de Imputação:",
+                        ('Média (Apenas Numérico)', 'Mediana (Apenas Numérico)', 'Moda (Mais Frequente)', 'Valor Constante', 'Preencher para Frente (ffill)', 'Preencher para Trás (bfill)'), # Added ffill/bfill
                         key='impute_method_select'
                     )
-                    if imputation_method == 'Constant Value':
-                        constant_value = st.text_input("Enter constant value to fill:", value="NA", key='impute_constant_input')
+                    if imputation_method == 'Valor Constante':
+                        constant_value = st.text_input("Digite o valor constante para preencher:", value="NA", key='impute_constant_input')
 
                     # Option to select columns for imputation
                     all_cols_with_na = missing_summary.index.tolist()
                     cols_to_impute = st.multiselect(
-                        "Select columns to impute (default: all with missing values):",
+                        "Selecione as colunas para imputação (padrão: todas com valores ausentes):",
                         options=df.columns.tolist(),
                         default=all_cols_with_na,
                         key='impute_cols_multi'
                     )
 
-                if st.button("✨ Apply Cleaning", key='apply_cleaning_button'):
+                if st.button("✨ Aplicar Limpeza", key='apply_cleaning_button'):
                     # ENHANCEMENT: Use spinner for cleaning action
-                    with st.spinner("Applying cleaning rules..."):
+                    with st.spinner("Aplicando regras de limpeza..."):
                         df_cleaned = df.copy() # Work on a copy
-                        action_taken = "No changes applied." # Default message
+                        action_taken = "Nenhuma alteração aplicada." # Default message
                         try:
                             if cleaning_strategy == 'Drop rows with any missing values':
                                 rows_before = len(df_cleaned)
                                 df_cleaned.dropna(axis=0, inplace=True)
                                 rows_after = len(df_cleaned)
-                                action_taken = f"Dropped {rows_before - rows_after} rows with missing values."
+                                action_taken = f"Removidas {rows_before - rows_after} linhas com valores ausentes."
                             elif cleaning_strategy == 'Drop columns with any missing values':
                                 cols_before = df_cleaned.shape[1]
                                 df_cleaned.dropna(axis=1, inplace=True)
                                 cols_after = df_cleaned.shape[1]
-                                action_taken = f"Dropped {cols_before - cols_after} columns with missing values."
+                                action_taken = f"Removidas {cols_before - cols_after} colunas com valores ausentes."
 
                             elif cleaning_strategy == 'Impute missing values (Fill)':
                                 if not cols_to_impute:
-                                    st.warning("Please select at least one column to impute.")
-                                    action_taken = "No columns selected for imputation."
+                                    st.warning("Por favor, selecione pelo menos uma coluna para imputação.")
+                                    action_taken = "Nenhuma coluna selecionada para imputação."
                                 else:
                                     imputed_cols_count = 0
                                     skipped_cols = []

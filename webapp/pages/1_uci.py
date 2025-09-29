@@ -28,7 +28,6 @@ datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
 # Português
 por_path = os.path.join(datasets_uci_path, 'student-por.csv')
 por = pd.read_csv(por_path, sep=';')
-
 # Matemática
 mat_path = os.path.join(datasets_uci_path, 'student-mat.csv')
 mat = pd.read_csv(mat_path, sep=';')
