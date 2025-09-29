@@ -74,7 +74,7 @@ patsy==1.0.1
 pexpect==4.9.0
 phik==0.12.5
 pillow==10.4.0
-pkg_resources==0.0.0
+pkg_resources
 platformdirs==4.4.0
 prompt_toolkit==3.0.52
 protobuf==5.29.5
