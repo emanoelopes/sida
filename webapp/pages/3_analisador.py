@@ -427,7 +427,7 @@ with st.sidebar: # ENHANCEMENT: Use 'with' context manager for sidebar clarity
 
     # --- Footer ---
     st.markdown("---")
-    st.caption("© Your Company Name - Analytics v2.0")
+    st.caption("PPGTE | IUVI | UFC - SIDA 0.2.1")
 
 
 # --- Main Application Area ---
