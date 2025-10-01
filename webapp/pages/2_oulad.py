@@ -14,8 +14,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown('# Informações Básicas dos Dados do OULAD')
-st.divider()
+#st.markdown('# Informações Básicas dos Dados do OULAD')
+#st.divider()
 
 datasets_oulad_path = Path(__file__).parent.parents[1] / 'datasets' / 'oulad_data'
 #st.write(f"Path dos datasets: {datasets_oulad_path}")
@@ -70,55 +70,55 @@ def show_basic_info(df):
     print("========================================================================================================")
 
 
-st.sidebar.selectbox('Escolha o dataframe para visualizar informações básicas:', 
-             options=list(dataframes_oulad.keys()),
-             key='selected_oulad_dataframe')
+# st.sidebar.selectbox('Escolha o dataframe para visualizar informações básicas:', 
+#              options=list(dataframes_oulad.keys()),
+#              key='selected_oulad_dataframe')
 
 # apresentar o dataframe selecionado
 #st.dataframe(dataframes_oulad[st.session_state['selected_oulad_dataframe']])
 
-# apresentar informações básicas do dataframe selecionado
-st.markdown("### Informações básicas do DataFrame:")
-selected_df = dataframes_oulad[st.session_state['selected_oulad_dataframe']]
+# # apresentar informações básicas do dataframe selecionado
+# st.markdown("### Informações básicas do DataFrame:")
+# selected_df = dataframes_oulad[st.session_state['selected_oulad_dataframe']]
 
-st.markdown("#### Head:")
-st.dataframe(selected_df.head(3))
+# st.markdown("#### Head:")
+# st.dataframe(selected_df.head(3))
 
-st.markdown("#### Shape:")
-st.write(selected_df.shape)
+# st.markdown("#### Shape:")
+# st.write(selected_df.shape)
 
-st.markdown("#### Info:")
-# Capture the output of info() to a string
-import io
-buffer = io.StringIO()
-selected_df.info(buf=buffer)
-info_string = buffer.getvalue()
+# st.markdown("#### Info:")
+# # Capture the output of info() to a string
+# import io
+# buffer = io.StringIO()
+# selected_df.info(buf=buffer)
+# info_string = buffer.getvalue()
 
-# Display the string in a st.code block for better formatting
-st.code(info_string, language='text')
+# # Display the string in a st.code block for better formatting
+# st.code(info_string, language='text')
 
-st.markdown("#### Describe:")
-st.dataframe(selected_df.describe().T.round(2))
+# st.markdown("#### Describe:")
+# st.dataframe(selected_df.describe().T.round(2))
 
-st.markdown("#### Null Values:")
-st.write(selected_df.isnull().sum())
+# st.markdown("#### Null Values:")
+# st.write(selected_df.isnull().sum())
 
-st.markdown("#### Unique Values:")
-st.write(selected_df.nunique())
+# st.markdown("#### Unique Values:")
+# st.write(selected_df.nunique())
 
-st.markdown("#### Duplicated Values:")
-st.write(selected_df.duplicated().sum())
+# st.markdown("#### Duplicated Values:")
+# st.write(selected_df.duplicated().sum())
 
-st.markdown("#### Value Counts (Object Columns):")
-st.write(selected_df.select_dtypes(include=['object']).nunique())
+# st.markdown("#### Value Counts (Object Columns):")
+# st.write(selected_df.select_dtypes(include=['object']).nunique())
 
-# Visualização de dados faltantes usando missingno
-st.markdown("### Visualização de Dados Faltantes:")
-st.markdown("#### Matriz de Dados Faltantes:")
+# # Visualização de dados faltantes usando missingno
+# st.markdown("### Visualização de Dados Faltantes:")
+# st.markdown("#### Matriz de Dados Faltantes:")
 
-fig, ax = plt.subplots()
-msno.matrix(selected_df, figsize=(6, 4), ax=ax)
-st.pyplot(fig)
+# fig, ax = plt.subplots()
+# msno.matrix(selected_df, figsize=(6, 4), ax=ax)
+# st.pyplot(fig)
 
 
 # Imputando valores ausentes em 'date_registration' e 'date_unregistration'
@@ -131,7 +131,7 @@ df_studentregistration_copy['date_registration'] = df_studentregistration_copy['
 
 # Display null values after imputation
 print("Null values after imputing date_registration and date_unregistration:")
-st.write(df_studentregistration_copy.isnull().sum())
+# st.write(df_studentregistration_copy.isnull().sum())
 
 
 new_vle = df_vle.drop(['week_from','week_to'],axis=1)
@@ -172,8 +172,8 @@ for col in merged_df.select_dtypes(include=np.number).columns:
 for col in merged_df.select_dtypes(include='object').columns:
     merged_df[col].fillna(merged_df[col].mode()[0], inplace=True)
 
-st.write("Merged DataFrame after handling missing values:")
-st.dataframe(merged_df.isnull().sum())
+# st.write("Merged DataFrame after handling missing values:")
+# st.dataframe(merged_df.isnull().sum())
 
 st.write('# Análise Exploratória de Dados (EDA) - OULAD')
 
@@ -310,8 +310,8 @@ st.markdown("Avaliando do modelo...")
 predictions = ml_model.predict(X_test)
 from sklearn.metrics import confusion_matrix, classification_report
 
-st.write(classification_report(y_test, predictions, zero_division=0))
-st.write(confusion_matrix(y_test, predictions))
+# st.write(classification_report(y_test, predictions, zero_division=0))
+# st.write(confusion_matrix(y_test, predictions))
 
 st.markdown('## Analisando  a importância das classes (feature importance)')
 

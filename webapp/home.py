@@ -3,10 +3,12 @@ import streamlit as st
 
 st.sidebar.markdown(
     '''
-    Mestrado Profissional
-    PPGTE
-    IUVI
-    UFC
+    Mestrado Profissional | PPGTE | IUVI 
+
+    Orientador: 
+    Prof. Leonardo Oliveira Moreira
+    Aluno:
+    [Emanoel Lopes](http://emanoel.pro.br)
     '''
     )
 
