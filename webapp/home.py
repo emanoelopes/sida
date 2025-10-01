@@ -5,13 +5,8 @@ st.sidebar.markdown(
     '''
     Mestrado Profissional
     PPGTE
-    IUVI 
-
-    Orientador: 
-    Prof. Leonardo Moreira
-    
-    Aluno:
-    [Emanoel Lopes](http://emanoel.pro.br)
+    IUVI
+    UFC
     '''
     )
 
