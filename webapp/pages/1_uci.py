@@ -46,8 +46,20 @@ df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
+st.markdown("""
+## Exploração inicial dos dados
+
+### Entendendo a tabela
+Realizar uma análise descritiva das colunas para entender o que eles representam.
+
+""")
+
 st.markdown("Explorando os valores numéricos")
 st.dataframe(df.select_dtypes('number').describe().T.round(2))
+
+st.markdown("## Análise descritiva de algumas colunas.")
+
+df[['G1','G2','G3','studytime','absences']].select_dtypes('number').describe().T.round(2
 
 st.markdown("Explorando os valores categóricos")
 
