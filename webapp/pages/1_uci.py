@@ -7,20 +7,16 @@ import seaborn as sns
 import numpy as np
 
 st.set_page_config(
-    page_title="Informações Básicas do Dados do UCI",
+    page_title="Informações Básicas do Conjunto de Dados UCI",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
     )
 
-
-st.title("Informações Básicas do Dados do UCI")
+st.title("Informações Básicas do Conjunto de Dados UCI")
 st.divider()
 st.markdown("# Apresentação do Conjunto de Dados UCI Machine Learning Repository")
-st.markdown("O conjunto dEliminação da pe dados UCI Machine Learning Repository é um repositório amplamente utilizado para conjuntos de dados de aprendizado de máquina. Ele é mantido pela Universidade da Califórnia, Irvine (UCI) e contém uma variedade de conjuntos de dados que são frequentemente usados para pesquisa, experimentação e benchmarking em aprendizado de máquina e ciência de dados.")
-st.markdown("O repositório UCI Machine Learning Repository é uma fonte valiosa para pesquisadores e profissionais que desejam testar algoritmos de aprendizado de máquina, comparar desempenho e explorar diferentes técnicas de modelagem. Ele oferece uma ampla gama de conjuntos de dados, desde problemas simples até desafios mais complexos, abrangendo diversas áreas, como classificação, regressão, clustering e muito mais.")
-st.markdown("Os conjuntos de dados no repositório UCI Machine Learning Repository são frequentemente acompanhados por descrições detalhadas, informações sobre atributos, tarefas associadas e referências bibliográficas. Isso facilita a compreensão e o uso adequado dos dados para fins de pesquisa e desenvolvimento de modelos de aprendizado de máquina.")
-st.markdown("Em resumo, o UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.")
+st.markdown("O UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.")
 
 datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
 #st.write(f"Path dos datasets: {datasets_uci_path}")
@@ -46,22 +42,64 @@ df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
-st.markdown("""
-## Exploração inicial dos dados
+st.markdown("## Explorando os valores numéricos")
 
-### Entendendo a tabela
-Realizar uma análise descritiva das colunas para entender o que eles representam.
+# Display summary statistics table
+numeric_df = df.select_dtypes('number')
+st.dataframe(numeric_df.describe().T.round(2))
 
-""")
+# Create visualization selection in sidebar
+with st.sidebar:
+    st.markdown("### Visualização dos dados numéricos")
+    st.write("Selecione o tipo de visualização:")
+    viz_type = st.selectbox(
+        "Tipo de Visualização",
+        ["Box Plot", "Histograma", "Violin Plot"]
+    )
 
-st.markdown("Explorando os valores numéricos")
-st.dataframe(df.select_dtypes('number').describe().T.round(2))
+# Create visualization section
+st.markdown("### Visualização das distribuições dos dados numéricos")
 
-st.markdown("## Análise descritiva de algumas colunas.")
+# Get all numeric column names
+numeric_columns = numeric_df.columns.tolist()
 
-df[['G1','G2','G3','studytime','absences']].select_dtypes('number').describe().T.round(2
+if len(numeric_columns) > 0:
+    # Determine number of rows and columns for subplots
+    n_cols = min(3, len(numeric_columns))
+    n_rows = (len(numeric_columns) + n_cols - 1) // n_cols
+    
+    # Create subplots based on selection
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5*n_rows))
+    if n_rows == 1:
+        axes = [axes] if n_cols == 1 else axes
+    else:
+        axes = axes.flatten()
+    
+    for i, col in enumerate(numeric_columns):
+        if viz_type == "Box Plot":
+            axes[i].boxplot(numeric_df[col].dropna())
+            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_ylabel('Valor')
+        elif viz_type == "Histograma":
+            axes[i].hist(numeric_df[col].dropna(), bins=30, alpha=0.7, edgecolor='black')
+            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_xlabel('Valor')
+            axes[i].set_ylabel('Frequência')
+        elif viz_type == "Violin Plot":
+            axes[i].violinplot(numeric_df[col].dropna())
+            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_ylabel('Valor')
+        
+    # Hide empty subplots
+    for i in range(len(numeric_columns), len(axes)):
+        axes[i].set_visible(False)
+    
+    plt.tight_layout()
+    st.pyplot(fig)
+else:
+    st.write("Nenhuma coluna numérica encontrada.")
 
-st.markdown("Explorando os valores categóricos")
+st.markdown('As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.')
 
 st.markdown('Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.')
 
