@@ -195,3 +195,6 @@ cython_debug/
 
 # Datasets
 datasets/
+
+# Continue extensions
+.continue/
