@@ -60,6 +60,19 @@ with st.sidebar:
         ["Box Plot", "Histograma", "Violin Plot"]
     )
 
+    st.markdown("---")
+    st.markdown("### Informações do Conjunto de Dados")
+    st.write(f"**Número de Instâncias:** {df.shape[0]}")
+    st.write(f"**Número de Atributos:** {df.shape[1]}")
+    st.write(f"**Número de Atributos Numéricos:** {numeric_df.shape[1]}")
+    st.write(f"**Número de Atributos Categóricos:** {df.select_dtypes('object').shape[1]}")
+    st.write(f"**Número de Valores Ausentes:** {df.isnull().sum().sum()}")
+    st.write(f"**Número de Valores Duplicados:** {df.duplicated().sum()}")
+    st.markdown("---")
+    
+    ### footer
+    st.markdown("Mestrado em Tecnologias Educacional - UFC")
+
 # Create visualization section
 st.markdown("### :material/analytics: Visualização das distribuições dos dados numéricos")
 
