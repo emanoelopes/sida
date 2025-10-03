@@ -43,10 +43,8 @@ df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
 st.markdown("## Explorando os valores numéricos")
-
-# Display summary statistics table
 numeric_df = df.select_dtypes('number')
-st.dataframe(numeric_df.describe().T.round(2))
+
 
 # Create visualization selection in sidebar
 with st.sidebar:
@@ -99,11 +97,22 @@ if len(numeric_columns) > 0:
 else:
     st.write("Nenhuma coluna numérica encontrada.")
 
-st.markdown('As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.')
 
-st.markdown('Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.')
+"""
+## Tabela de resumo estatístico
+"""
+# 
 
-st.markdown('### Distribuicao do grau de formação dos pais em relação a nota final.')
+# Display summary statistics table
+st.dataframe(numeric_df.describe().T.round(2))
+
+"""
+As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.')
+"""
+
+# st.markdown('Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.')
+
+# st.markdown('### Distribuicao do grau de formação dos pais em relação a nota final.')
 
 # Boxplot
 fig, axes = plt.subplots(1, 2, figsize=(18, 5)) # Correct way to define axes
@@ -118,8 +127,9 @@ plt.tight_layout()
 st.pyplot(fig)
 # plt.clf()
 
-
-st.markdown('## Visualizando os dados')
+"""
+## Distribuição das notas 
+"""
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -134,6 +144,9 @@ ax[2].set_title('Distribuição das Notas G3')
 plt.tight_layout()
 st.pyplot(fig)
 plt.clf()
+
+"""
+"""
 
 #Bloxpot
 
