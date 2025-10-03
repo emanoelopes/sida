@@ -15,8 +15,13 @@ st.set_page_config(
 
 st.title("Informações Básicas do Conjunto de Dados UCI")
 st.divider()
-st.markdown("# Apresentação do Conjunto de Dados UCI Machine Learning Repository")
-st.markdown("O UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.")
+
+"""
+# Apresentação do Conjunto de Dados UCI Machine Learning Repository
+
+O UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.
+
+"""
 
 datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
 #st.write(f"Path dos datasets: {datasets_uci_path}")
@@ -56,7 +61,7 @@ with st.sidebar:
     )
 
 # Create visualization section
-st.markdown("### Visualização das distribuições dos dados numéricos")
+st.markdown("### :material/analytics: Visualização das distribuições dos dados numéricos")
 
 # Get all numeric column names
 numeric_columns = numeric_df.columns.tolist()
@@ -97,6 +102,7 @@ if len(numeric_columns) > 0:
 else:
     st.write("Nenhuma coluna numérica encontrada.")
 
+<<<<<<< HEAD
 
 """
 ## Tabela de resumo estatístico
@@ -113,6 +119,19 @@ As distribuições dos dados numéricos mostram que a faixa etária é, na sua m
 # st.markdown('Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.')
 
 # st.markdown('### Distribuicao do grau de formação dos pais em relação a nota final.')
+=======
+"""
+As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.
+"""
+
+"""
+Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.
+"""
+
+"""
+### Distribuicao do grau de formação dos pais em relação a nota final.
+"""
+>>>>>>> 1cbd2f6e33aba30adc150872bb53e82471485c65
 
 # Boxplot
 fig, axes = plt.subplots(1, 2, figsize=(18, 5)) # Correct way to define axes
@@ -127,9 +146,8 @@ plt.tight_layout()
 st.pyplot(fig)
 # plt.clf()
 
-"""
-## Distribuição das notas 
-"""
+
+st.markdown('## :material/query_stats: Visualizando os dados')
 
 import matplotlib.pyplot as plt
 import seaborn as sns
