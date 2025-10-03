@@ -111,7 +111,7 @@ Por meio da análise descritiva dos dados numéricos e categóricos, a maioria d
 """
 
 """
-### Distribuicao do grau de formação dos pais em relação a nota final.
+### Distribuiçãoo do grau de formação dos pais em relação a nota final
 """
 
 # Boxplot
@@ -128,7 +128,7 @@ st.pyplot(fig)
 # plt.clf()
 
 
-st.markdown('## :material/query_stats: Visualizando os dados')
+st.markdown('## :material/query_stats: Distribuição das notas')
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -155,6 +155,10 @@ fig, ax = plt.subplots(figsize=(22, 8))
 sns.violinplot(data=df, x='Mjob')
 fig.suptitle('Ocupação da mãe', fontsize=20)
 st.pyplot(fig)
+
+"""
+A ocupação da mãe concentra a maioria das instâncias em 'outros' o que não é um bom critério para seleção.
+"""
 
 
 # Nível de escolaridade da mãe
