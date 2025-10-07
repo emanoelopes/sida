@@ -180,3 +180,83 @@ fig, ax = plt.subplots(figsize=(22, 8))
 sns.violinplot(data=df, x='Medu')
 fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
+
+# 1. Análise de correlação entre variáveis numéricas
+st.markdown("## Matriz de Correlação")
+st.write("Esta visualização mostra como as variáveis numéricas se relacionam entre si.")
+
+# Calcular a matriz de correlação
+corr = numeric_df.corr()
+
+# Plotar o mapa de calor
+fig, ax = plt.subplots(figsize=(12, 10))
+mask = np.triu(np.ones_like(corr, dtype=bool))
+cmap = sns.diverging_palette(230, 20, as_cmap=True)
+sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
+            square=True, linewidths=.5, annot=True, fmt=".2f", ax=ax)
+plt.title('Matriz de Correlação entre Variáveis Numéricas', fontsize=15)
+st.pyplot(fig)
+plt.clf()
+
+# 2. Análise da relação entre consumo de álcool e desempenho acadêmico
+st.markdown("## Relação entre Consumo de Álcool e Desempenho Acadêmico")
+
+fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+sns.boxplot(x='Dalc', y='G3', data=df, ax=axes[0])
+axes[0].set_title('Consumo de Álcool Durante a Semana vs Nota Final')
+axes[0].set_xlabel('Nível de Consumo de Álcool Durante a Semana')
+axes[0].set_ylabel('Nota Final')
+
+sns.boxplot(x='Walc', y='G3', data=df, ax=axes[1])
+axes[1].set_title('Consumo de Álcool no Final de Semana vs Nota Final')
+axes[1].set_xlabel('Nível de Consumo de Álcool no Final de Semana')
+axes[1].set_ylabel('Nota Final')
+
+plt.tight_layout()
+st.pyplot(fig)
+plt.clf()
+
+# 3. Análise do impacto do tempo de estudo no desempenho
+st.markdown("## Impacto do Tempo de Estudo no Desempenho Acadêmico")
+
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.boxplot(x='studytime', y='G3', data=df, ax=ax)
+ax.set_title('Tempo de Estudo vs Nota Final')
+ax.set_xlabel('Tempo de Estudo Semanal')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
+
+# 4. Análise de desempenho por gênero
+st.markdown("## Comparação de Desempenho por Gênero")
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.boxplot(x='sex', y='G3', data=df, ax=ax)
+ax.set_title('Notas Finais por Gênero')
+ax.set_xlabel('Gênero')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
+
+# 5. Análise de faltas vs desempenho
+st.markdown("## Relação entre Faltas e Desempenho Acadêmico")
+
+# Criar categorias de faltas
+# Criar um DataFrame temporário para evitar problemas de índice duplicado
+temp_df = df.reset_index(drop=True).copy()
+
+# Criar categorias de faltas
+temp_df['absences_cat'] = pd.cut(temp_df['absences'], 
+                           bins=[0, 5, 10, 15, 20, 100], 
+                           labels=['0-5', '6-10', '11-15', '16-20', '21+'])
+
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.boxplot(x='absences_cat', y='G3', data=temp_df, ax=ax)
+ax.set_title('Faltas vs Nota Final')
+ax.set_xlabel('Número de Faltas')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
