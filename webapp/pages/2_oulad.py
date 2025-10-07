@@ -265,7 +265,7 @@ st.markdown("Preparação dos dados para modelos de ML...")
 Y = merged_df['final_result']
 X = merged_df.loc[:, merged_df.columns != 'final_result']
 
-st.markdown('Removendo as colunas irrelevantes ou com alta cardinalidade...')
+st.markdown('Removendo as classes irrelevantes ou com alta cardinalidade...')
 X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1)
 
 from sklearn.model_selection import train_test_split
