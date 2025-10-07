@@ -260,3 +260,96 @@ ax.set_ylabel('Nota Final')
 
 st.pyplot(fig)
 plt.clf()
+
+st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
+
+st.markdown("Preparação dos dados para modelos de ML...")
+Y = df['G3']
+X = df.drop('G3', axis=1)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+"""
+Treinando o modelo...
+"""
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Identify categorical columns
+categorical_features = X.select_dtypes(include=['object']).columns
+
+# Create a column transformer to apply one-hot encoding
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+    ],
+    remainder='passthrough' # Keep other columns (numerical)
+)
+
+# Create a pipeline with the preprocessor and the model
+model = Pipeline(steps=[('preprocessor', preprocessor),
+                      ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))])
+
+# Convert the target variable to integers (although for regression this might not be strictly necessary depending on the model, it doesn't hurt)
+y_train = y_train.astype(float) # Convert to float for regression
+
+model.fit(X_train, y_train)
+
+"""
+## Avaliação do modelo
+"""
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import confusion_matrix, classification_report
+
+import numpy as np
+
+# Make predictions on the test data
+predictions = model.predict(X_test)
+
+# Evaluate the model using regression metrics
+mae = mean_absolute_error(y_test, predictions)
+rmse = np.sqrt(mean_squared_error(y_test, predictions))
+r2 = r2_score(y_test, predictions)
+
+st.markdown(f"Mean Absolute Error (MAE): {mae:.2f}")
+st.markdown(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+st.markdown(f"R-squared (R2): {r2:.2f}")
+
+
+"""
+## Importância das classes em relação ao resultado final\
+"""
+
+from sklearn.inspection import permutation_importance
+
+result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
+sorted_idx = result.importances_mean.argsort()
+
+fig, ax = plt.subplots(figsize=(12, 10))
+ax.boxplot(result.importances[sorted_idx].T,
+           vert=False, labels=X_test.columns[sorted_idx])
+ax.set_title("Importância das classes")
+fig.tight_layout()
+st.pyplot(fig)
+
+
+st.markdown("## Conclusão")
+
+"""
+Foi possível observar que a notal final (G3) é fortemente influenciada, em termos absolutos, pelas notas anteriores e a quantidade de faltas.
+"""
+
+# Salvando os resultados no formato pickle
+
+import pickle
+from pathlib import Path
+
+with open('uci.pkl', 'wb') as f:
+    pickle.dump(model, f)
+    f.close()
