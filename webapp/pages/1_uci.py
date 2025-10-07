@@ -40,7 +40,7 @@ por['origem'] = 'por'
 # Concatenando os dataframes
 
 df = pd.concat([mat, por])
-
+st.session_state['df_uci'] = df
 # Transformando valores e tipos de dados
 df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'})
 df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'})
@@ -141,7 +141,7 @@ st.pyplot(fig)
 # plt.clf()
 
 
-st.markdown('## :material/query_stats: Distribuição das notas')
+st.markdown('## Distribuição das notas')
 
 import matplotlib.pyplot as plt
 import seaborn as sns
