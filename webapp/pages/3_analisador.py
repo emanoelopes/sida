@@ -325,15 +325,9 @@ if 'data_loaded' not in st.session_state:
 with st.sidebar: # ENHANCEMENT: Use 'with' context manager for sidebar clarity
     st.header("⚙️ Upload & Options")
 
-    # ENHANCEMENT: Dark mode toggle
-    # Note: This primarily controls the JS/CSS class switching. Streamlit's own theme
-    # settings might override some aspects if manually changed by the user via the menu.
-    if st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key='dark_mode_toggle'):
-        st.session_state.dark_mode = True
-    else:
-        st.session_state.dark_mode = False
-    # Trigger CSS update on toggle change
-    apply_custom_css()
+    # ENHANCEMENT: Dark mode toggle removed
+    def apply_custom_css():
+        pass  # No custom css applied
 
 
     uploaded_file = st.file_uploader(
@@ -427,7 +421,7 @@ with st.sidebar: # ENHANCEMENT: Use 'with' context manager for sidebar clarity
 
     # --- Footer ---
     st.markdown("---")
-    st.caption("© Your Company Name - Analytics v2.0")
+    st.caption("PPGTE | IUVI | UFC - SIDA 0.2.1")
 
 
 # --- Main Application Area ---

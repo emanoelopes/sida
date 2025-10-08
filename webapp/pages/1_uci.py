@@ -40,7 +40,7 @@ por['origem'] = 'por'
 # Concatenando os dataframes
 
 df = pd.concat([mat, por])
-
+st.session_state['df_uci'] = df
 # Transformando valores e tipos de dados
 df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'})
 df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'})
@@ -48,10 +48,8 @@ df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
 st.markdown("## Explorando os valores numéricos")
-
-# Display summary statistics table
 numeric_df = df.select_dtypes('number')
-st.dataframe(numeric_df.describe().T.round(2))
+
 
 # Create visualization selection in sidebar
 with st.sidebar:
@@ -61,6 +59,19 @@ with st.sidebar:
         "Tipo de Visualização",
         ["Box Plot", "Histograma", "Violin Plot"]
     )
+
+    st.markdown("---")
+    st.markdown("### Informações do Conjunto de Dados")
+    st.write(f"**Número de Instâncias:** {df.shape[0]}")
+    st.write(f"**Número de Atributos:** {df.shape[1]}")
+    st.write(f"**Número de Atributos Numéricos:** {numeric_df.shape[1]}")
+    st.write(f"**Número de Atributos Categóricos:** {df.select_dtypes('object').shape[1]}")
+    st.write(f"**Número de Valores Ausentes:** {df.isnull().sum().sum()}")
+    st.write(f"**Número de Valores Duplicados:** {df.duplicated().sum()}")
+    st.markdown("---")
+    
+    ### footer
+    st.markdown("Mestrado em Tecnologias Educacional - UFC")
 
 # Create visualization section
 st.markdown("### :material/analytics: Visualização das distribuições dos dados numéricos")
@@ -113,7 +124,7 @@ Por meio da análise descritiva dos dados numéricos e categóricos, a maioria d
 """
 
 """
-### Distribuicao do grau de formação dos pais em relação a nota final.
+### Distribuiçãoo do grau de formação dos pais em relação a nota final
 """
 
 # Boxplot
@@ -130,7 +141,7 @@ st.pyplot(fig)
 # plt.clf()
 
 
-st.markdown('## :material/query_stats: Visualizando os dados')
+st.markdown('## Distribuição das notas')
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -146,6 +157,9 @@ plt.tight_layout()
 st.pyplot(fig)
 plt.clf()
 
+"""
+"""
+
 #Bloxpot
 
 # Ocupação da mãe
@@ -155,6 +169,10 @@ sns.violinplot(data=df, x='Mjob')
 fig.suptitle('Ocupação da mãe', fontsize=20)
 st.pyplot(fig)
 
+"""
+A ocupação da mãe concentra a maioria das instâncias em 'outros' o que não é um bom critério para seleção.
+"""
+
 
 # Nível de escolaridade da mãe
 fig, ax = plt.subplots(figsize=(22, 8))
@@ -162,3 +180,176 @@ fig, ax = plt.subplots(figsize=(22, 8))
 sns.violinplot(data=df, x='Medu')
 fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
+
+# 1. Análise de correlação entre variáveis numéricas
+st.markdown("## Matriz de Correlação")
+st.write("Esta visualização mostra como as variáveis numéricas se relacionam entre si.")
+
+# Calcular a matriz de correlação
+corr = numeric_df.corr()
+
+# Plotar o mapa de calor
+fig, ax = plt.subplots(figsize=(12, 10))
+mask = np.triu(np.ones_like(corr, dtype=bool))
+cmap = sns.diverging_palette(230, 20, as_cmap=True)
+sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
+            square=True, linewidths=.5, annot=True, fmt=".2f", ax=ax)
+plt.title('Matriz de Correlação entre Variáveis Numéricas', fontsize=15)
+st.pyplot(fig)
+plt.clf()
+
+# 2. Análise da relação entre consumo de álcool e desempenho acadêmico
+st.markdown("## Relação entre Consumo de Álcool e Desempenho Acadêmico")
+
+fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+sns.boxplot(x='Dalc', y='G3', data=df, ax=axes[0])
+axes[0].set_title('Consumo de Álcool Durante a Semana vs Nota Final')
+axes[0].set_xlabel('Nível de Consumo de Álcool Durante a Semana')
+axes[0].set_ylabel('Nota Final')
+
+sns.boxplot(x='Walc', y='G3', data=df, ax=axes[1])
+axes[1].set_title('Consumo de Álcool no Final de Semana vs Nota Final')
+axes[1].set_xlabel('Nível de Consumo de Álcool no Final de Semana')
+axes[1].set_ylabel('Nota Final')
+
+plt.tight_layout()
+st.pyplot(fig)
+plt.clf()
+
+# 3. Análise do impacto do tempo de estudo no desempenho
+st.markdown("## Impacto do Tempo de Estudo no Desempenho Acadêmico")
+
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.boxplot(x='studytime', y='G3', data=df, ax=ax)
+ax.set_title('Tempo de Estudo vs Nota Final')
+ax.set_xlabel('Tempo de Estudo Semanal')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
+
+# 4. Análise de desempenho por gênero
+st.markdown("## Comparação de Desempenho por Gênero")
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.boxplot(x='sex', y='G3', data=df, ax=ax)
+ax.set_title('Notas Finais por Gênero')
+ax.set_xlabel('Gênero')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
+
+# 5. Análise de faltas vs desempenho
+st.markdown("## Relação entre Faltas e Desempenho Acadêmico")
+
+# Criar categorias de faltas
+# Criar um DataFrame temporário para evitar problemas de índice duplicado
+temp_df = df.reset_index(drop=True).copy()
+
+# Criar categorias de faltas
+temp_df['absences_cat'] = pd.cut(temp_df['absences'], 
+                           bins=[0, 5, 10, 15, 20, 100], 
+                           labels=['0-5', '6-10', '11-15', '16-20', '21+'])
+
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.boxplot(x='absences_cat', y='G3', data=temp_df, ax=ax)
+ax.set_title('Faltas vs Nota Final')
+ax.set_xlabel('Número de Faltas')
+ax.set_ylabel('Nota Final')
+
+st.pyplot(fig)
+plt.clf()
+
+st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
+
+st.markdown("Preparação dos dados para modelos de ML...")
+Y = df['G3']
+X = df.drop('G3', axis=1)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+"""
+Treinando o modelo...
+"""
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Identify categorical columns
+categorical_features = X.select_dtypes(include=['object']).columns
+
+# Create a column transformer to apply one-hot encoding
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+    ],
+    remainder='passthrough' # Keep other columns (numerical)
+)
+
+# Create a pipeline with the preprocessor and the model
+model = Pipeline(steps=[('preprocessor', preprocessor),
+                      ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))])
+
+# Convert the target variable to integers (although for regression this might not be strictly necessary depending on the model, it doesn't hurt)
+y_train = y_train.astype(float) # Convert to float for regression
+
+model.fit(X_train, y_train)
+
+"""
+## Avaliação do modelo
+"""
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import confusion_matrix, classification_report
+
+import numpy as np
+
+# Make predictions on the test data
+predictions = model.predict(X_test)
+
+# Evaluate the model using regression metrics
+mae = mean_absolute_error(y_test, predictions)
+rmse = np.sqrt(mean_squared_error(y_test, predictions))
+r2 = r2_score(y_test, predictions)
+
+st.markdown(f"Mean Absolute Error (MAE): {mae:.2f}")
+st.markdown(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+st.markdown(f"R-squared (R2): {r2:.2f}")
+
+
+"""
+## Importância das classes em relação ao resultado final\
+"""
+
+from sklearn.inspection import permutation_importance
+
+result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
+sorted_idx = result.importances_mean.argsort()
+
+fig, ax = plt.subplots(figsize=(12, 10))
+ax.boxplot(result.importances[sorted_idx].T,
+           vert=False, labels=X_test.columns[sorted_idx])
+ax.set_title("Importância das classes")
+fig.tight_layout()
+st.pyplot(fig)
+
+
+st.markdown("## Conclusão")
+
+"""
+Foi possível observar que a notal final (G3) é fortemente influenciada, em termos absolutos, pelas notas anteriores e a quantidade de faltas.
+"""
+
+# Salvando os resultados no formato pickle
+
+import pickle
+from pathlib import Path
+
+with open('uci.pkl', 'wb') as f:
+    pickle.dump(model, f)
+    f.close()
