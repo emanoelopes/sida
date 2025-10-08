@@ -32,6 +32,7 @@ for filename in os.listdir(datasets_oulad_path):
         except Exception as e:
             print(f"Erro ao carregar o arquivo '{filename}': {e}")
 
+
 df_assessments = dataframes_oulad['assessments'].head(10_000)
 df_courses = dataframes_oulad['courses'].head(10_000)
 df_vle = dataframes_oulad['vle'].head(10_000)
@@ -152,11 +153,16 @@ df_student_registration_copy['date_unregistration'] = df_student_registration_co
 df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
 
 # Junção dos dados
+@st.cache_data
+def merge_dataframes():
+    vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
+    assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
+    studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
+    merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+    return merged_df
 
-vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
-assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
-studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
-merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+merged_df = merge_dataframes()
+st.session_state['merged_df'] = merged_df
 
 # Merge with courses dataframe
 merged_df = pd.merge(merged_df, df_courses, on=['code_presentation'], how='inner')
@@ -259,7 +265,7 @@ st.markdown("Preparação dos dados para modelos de ML...")
 Y = merged_df['final_result']
 X = merged_df.loc[:, merged_df.columns != 'final_result']
 
-st.markdown('Removendo as colunas irrelevantes ou com alta cardinalidade...')
+st.markdown('Removendo as classes irrelevantes ou com alta cardinalidade...')
 X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1)
 
 from sklearn.model_selection import train_test_split
