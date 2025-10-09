@@ -15,7 +15,7 @@ st.sidebar.markdown(
     '''
     )
 
-st.markdown('# :material/query_stats: Sistema de Identificação de Dificuldades de Aprendizagem')
+st.markdown('# Sistema de Identificação de Dificuldades de Aprendizagem ')
 st.divider()
 
 # Display the dataframe from session state

@@ -74,7 +74,7 @@ with st.sidebar:
     st.markdown("Mestrado em Tecnologias Educacional - UFC")
 
 # Create visualization section
-st.markdown("### :material/analytics: Visualização das distribuições dos dados numéricos")
+st.markdown("### Visualização das distribuições dos dados numéricos ")
 
 # Get all numeric column names
 numeric_columns = numeric_df.columns.tolist()
@@ -118,13 +118,21 @@ else:
 """
 As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.
 """
+"""
+## Explorando os valores categóricos
+"""
+
+st.session_state['cat_columns'] = df.select_dtypes('object').describe().T
+
+st.dataframe(st.session_state['cat_columns'], width='content')
+
 
 """
 Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.
 """
 
 """
-### Distribuiçãoo do grau de formação dos pais em relação a nota final
+### Distribuição do grau de formação dos pais em relação a nota final
 """
 
 # Boxplot
@@ -161,18 +169,6 @@ plt.clf()
 """
 
 #Bloxpot
-
-# Ocupação da mãe
-fig, ax = plt.subplots(figsize=(22, 8))
-
-sns.violinplot(data=df, x='Mjob')
-fig.suptitle('Ocupação da mãe', fontsize=20)
-st.pyplot(fig)
-
-"""
-A ocupação da mãe concentra a maioria das instâncias em 'outros' o que não é um bom critério para seleção.
-"""
-
 
 # Nível de escolaridade da mãe
 fig, ax = plt.subplots(figsize=(22, 8))
