@@ -198,3 +198,7 @@ datasets/
 
 # Continue extensions
 .continue/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
