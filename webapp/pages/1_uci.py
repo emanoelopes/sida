@@ -17,10 +17,7 @@ st.title("Informações Básicas do Conjunto de Dados UCI")
 st.divider()
 
 """
-# Apresentação do Conjunto de Dados UCI Machine Learning Repository
-
 O UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.
-
 """
 
 datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
@@ -47,6 +44,22 @@ df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
+st.markdown('## Distribuição das notas')
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
+ax[0].set_title('Distribuição das Notas G1')
+sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
+ax[1].set_title('Distribuição das Notas G2')
+sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
+ax[2].set_title('Distribuição das Notas G3')
+plt.tight_layout()
+st.pyplot(fig)
+plt.clf()   
+
 st.markdown("## Explorando os valores numéricos")
 numeric_df = df.select_dtypes('number')
 
@@ -61,7 +74,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("### Informações do Conjunto de Dados")
+    st.markdown("## Informações")
     st.write(f"**Número de Instâncias:** {df.shape[0]}")
     st.write(f"**Número de Atributos:** {df.shape[1]}")
     st.write(f"**Número de Atributos Numéricos:** {numeric_df.shape[1]}")
@@ -128,9 +141,8 @@ st.dataframe(st.session_state['cat_columns'], width='content')
 
 
 """
-Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes são do sexo feminino, moram em cidades em família com mais de três pessoas, sustentadas pelas mães, moram com os pais.
+Por meio da análise descritiva dos dados numéricos e categóricos, a maioria dos estudantes é do sexo feminino, mora em cidades em família com mais de três pessoas, mora com os pais, com a mãe sendo a guardiã dos filhos.
 """
-
 """
 ### Distribuição do grau de formação dos pais em relação a nota final
 """
@@ -147,28 +159,9 @@ axes[1].set_title('Distribuição das Notas Finais por Grau de Formação da Mã
 plt.tight_layout()
 st.pyplot(fig)
 # plt.clf()
-
-
-st.markdown('## Distribuição das notas')
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
-ax[0].set_title('Distribuição das Notas G1')
-sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
-ax[1].set_title('Distribuição das Notas G2')
-sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
-ax[2].set_title('Distribuição das Notas G3')
-plt.tight_layout()
-st.pyplot(fig)
-plt.clf()
-
-"""
-"""
-
-#Bloxpot
+'''
+O gráfico apresenta uma relação direta do grau de formação do pai com a nota final, no entando há registros de estudante que alcançou nota final 15 com mãe sem educação formal, apesar das maiores notas serem alcançadas por filhos de mães com nível superior.
+'''
 
 # Nível de escolaridade da mãe
 fig, ax = plt.subplots(figsize=(22, 8))
@@ -176,6 +169,10 @@ fig, ax = plt.subplots(figsize=(22, 8))
 sns.violinplot(data=df, x='Medu')
 fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
+
+'''
+Há uma concentração de mães com Nível Superior e com Ensino Fundamental II (6º ao 9º ano). 
+'''
 
 # 1. Análise de correlação entre variáveis numéricas
 st.markdown("## Matriz de Correlação")
@@ -194,6 +191,10 @@ plt.title('Matriz de Correlação entre Variáveis Numéricas', fontsize=15)
 st.pyplot(fig)
 plt.clf()
 
+'''
+A idade é diretamente proporcionais às quantidade de faltas e falhas (notas baixas) e estas, por sua vez, possuem relação direta com tempo livre e faltas. As notas finais, possuem uma forte correlação com as notas do primeiro bimestre e, mais ainda, com as do segundo bimestre, 0.81 e 0.91, respectivamente.
+'''
+
 # 2. Análise da relação entre consumo de álcool e desempenho acadêmico
 st.markdown("## Relação entre Consumo de Álcool e Desempenho Acadêmico")
 
@@ -211,6 +212,10 @@ axes[1].set_ylabel('Nota Final')
 plt.tight_layout()
 st.pyplot(fig)
 plt.clf()
+
+'''
+Estudantes com zero ou baixo consumo de álcool, durante a semana, alcançam nota máxima, com média de 12,5 e com registros de nota cinco. Os alunos com alto consumo de álcool, durante a semana, alcaçam notas um pouco acima de 15, mas apresentam média semelhante. Em relação ao consumo apenas no final de semana, os resultados são mais equivalentes quando a escala alcança o valor 3, ou seja, com moderação do consumo.
+'''
 
 # 3. Análise do impacto do tempo de estudo no desempenho
 st.markdown("## Impacto do Tempo de Estudo no Desempenho Acadêmico")
