@@ -52,9 +52,6 @@ df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
 st.markdown('## Distribuição das notas')
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 fig, ax = plt.subplots(1, 3, figsize=(18, 5))
 sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
 ax[0].set_title('Distribuição das Notas G1')
@@ -65,6 +62,30 @@ ax[2].set_title('Distribuição das Notas G3')
 plt.tight_layout()
 st.pyplot(fig)
 plt.clf()   
+
+'''
+## Avaliando a normalidade da classe G3
+'''
+
+import numpy as np
+from scipy.stats import norm
+
+media = df['G3'].mean()
+desvio_padrao = df['G3'].std()
+v_min = df['G3'].min()
+v_max = df['G3'].max()
+
+xs = np.linspace(v_min, v_max, 10_000)
+ys = norm.pdf(xs, loc=media, scale=desvio_padrao)
+
+fig, ax = plt.subplots(figsize=(18, 8))
+
+sns.histplot(data=df, ax=ax, x='G3', binwidth=1.0, kde=True, stat='density')
+ax.plot(xs, ys, color='red')
+
+fig.suptitle('Notas finais')
+st.pyplot(fig)
+
 
 st.markdown("## Explorando os valores numéricos")
 numeric_df = df.select_dtypes('number')
@@ -135,7 +156,7 @@ else:
     st.write("Nenhuma coluna numérica encontrada.")
 
 """
-As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é de um pouco mais de 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da média com uma dispersão aceitável, coeficiente de variação em torno de 27%.
+As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é um pouco maior 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da mediana com uma dispersão aceitável, coeficiente de variação em torno de 27%.
 """
 """
 ## Explorando os valores categóricos
@@ -177,7 +198,7 @@ fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
 
 '''
-Há uma concentração de mães com Nível Superior e com Ensino Fundamental II (6º ao 9º ano). 
+Há uma concentração mais acentuada de mães com Nível Superior e com Ensino Fundamental II (6º ao 9º ano). 
 '''
 
 # 1. Análise de correlação entre variáveis numéricas
@@ -231,13 +252,12 @@ sns.boxplot(x='studytime', y='G3', data=df, ax=ax)
 ax.set_title('Tempo de Estudo vs Nota Final')
 ax.set_xlabel('Tempo de Estudo Semanal')
 ax.set_ylabel('Nota Final')
-
-'''
-
-'''
-
 st.pyplot(fig)
 plt.clf()
+
+'''
+A correlação entre o número de horas de estudo e a pontuação final indica que 75% dos alunos que dedicam menos de 2 horas por semana, obtêm uma pontuação inferior a 13. Aqueles que estudam de 5 a 10h têm uma concentração de notas mais altas, até mesmo em comparação com aqueles que estudam mais de 10h; estes foram os que obtiveram as maiores notas.
+'''
 
 # 4. Análise de desempenho por gênero
 st.markdown("## Comparação de Desempenho por Gênero")
@@ -251,8 +271,11 @@ ax.set_ylabel('Nota Final')
 st.pyplot(fig)
 plt.clf()
 
+'''
+Uma análise das notas finais de ambos os gêneros revela que, apesar da distribuição e da variabilidade das notas serem bastante parecidas, a mediana das notas femininas é um pouco mais alta que a dos homens.'''
+
 # 5. Análise de faltas vs desempenho
-st.markdown("## Relação entre Faltas e Desempenho Acadêmico")
+st.markdown("## Relação entre faltas e nota final")
 
 # Criar categorias de faltas
 # Criar um DataFrame temporário para evitar problemas de índice duplicado
@@ -271,6 +294,10 @@ ax.set_ylabel('Nota Final')
 
 st.pyplot(fig)
 plt.clf()
+
+'''
+O gráfico indica uma ligeira tendência de queda na nota final conforme o número de faltas aumenta, especialmente a partir da faixa de 11-15 faltas. Estudantes que apresentam menos de 10 faltas alcançam notas máximas e concentram-se entre 10 e 14 pontos. As notas medianas e máximas observadas demonstram uma redução significativa quando superior a 16 faltas.
+'''
 
 st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
 
