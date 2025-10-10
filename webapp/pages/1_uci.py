@@ -177,10 +177,10 @@ Por meio da análise descritiva dos dados numéricos e categóricos, a maioria d
 # Boxplot
 fig, axes = plt.subplots(1, 2, figsize=(18, 5)) # Correct way to define axes
 
-sns.boxplot(data=df, x='Fedu', y='G3', ax=axes[0])  #  Use the ax at the correct index
+sns.boxplot(data=df, x='Fedu', y='G3', ax=axes[0], palette='rainbow')  #  Use the ax at the correct index
 axes[0].set_title('Distribuição das Notas Finais por Grau de Formação do Pai')
 
-sns.boxplot(data=df, x='Medu', y='G3', ax=axes[1])
+sns.boxplot(data=df, x='Medu', y='G3', ax=axes[1], palette='rainbow')
 axes[1].set_title('Distribuição das Notas Finais por Grau de Formação da Mãe')
 
 plt.tight_layout()
@@ -226,12 +226,12 @@ A idade é diretamente proporcionais às quantidade de faltas e falhas (notas ba
 st.markdown("## Relação entre Consumo de Álcool e Desempenho Acadêmico")
 
 fig, axes = plt.subplots(1, 2, figsize=(18, 6))
-sns.boxplot(x='Dalc', y='G3', data=df, ax=axes[0])
+sns.boxplot(x='Dalc', y='G3', data=df, ax=axes[0], palette='tab10')
 axes[0].set_title('Consumo de Álcool Durante a Semana vs Nota Final')
 axes[0].set_xlabel('Nível de Consumo de Álcool Durante a Semana')
 axes[0].set_ylabel('Nota Final')
 
-sns.boxplot(x='Walc', y='G3', data=df, ax=axes[1])
+sns.boxplot(x='Walc', y='G3', data=df, ax=axes[1], palette='tab10')
 axes[1].set_title('Consumo de Álcool no Final de Semana vs Nota Final')
 axes[1].set_xlabel('Nível de Consumo de Álcool no Final de Semana')
 axes[1].set_ylabel('Nota Final')
@@ -248,7 +248,7 @@ Estudantes com zero ou baixo consumo de álcool, durante a semana, alcançam not
 st.markdown("## Impacto do Tempo de Estudo no Desempenho Acadêmico")
 
 fig, ax = plt.subplots(figsize=(12, 6))
-sns.boxplot(x='studytime', y='G3', data=df, ax=ax)
+sns.boxplot(x='studytime', y='G3', data=df, ax=ax, palette='coolwarm')
 ax.set_title('Tempo de Estudo vs Nota Final')
 ax.set_xlabel('Tempo de Estudo Semanal')
 ax.set_ylabel('Nota Final')
@@ -263,7 +263,7 @@ A correlação entre o número de horas de estudo e a pontuação final indica q
 st.markdown("## Comparação de Desempenho por Gênero")
 
 fig, ax = plt.subplots(figsize=(10, 6))
-sns.boxplot(x='sex', y='G3', data=df, ax=ax)
+sns.boxplot(x='sex', y='G3', data=df, ax=ax, palette='Set1')
 ax.set_title('Notas Finais por Gênero')
 ax.set_xlabel('Gênero')
 ax.set_ylabel('Nota Final')
@@ -287,7 +287,7 @@ temp_df['absences_cat'] = pd.cut(temp_df['absences'],
                            labels=['0-5', '6-10', '11-15', '16-20', '21+'])
 
 fig, ax = plt.subplots(figsize=(12, 6))
-sns.boxplot(x='absences_cat', y='G3', data=temp_df, ax=ax)
+sns.boxplot(x='absences_cat', y='G3', data=temp_df, ax=ax, palette='Paired')
 ax.set_title('Faltas vs Nota Final')
 ax.set_xlabel('Número de Faltas')
 ax.set_ylabel('Nota Final')
