@@ -36,7 +36,13 @@ por['origem'] = 'por'
 
 # Concatenando os dataframes
 
-df = pd.concat([mat, por])
+@st.cache_data
+def concat():
+    df = pd.concat([mat, por])
+    return df
+
+df = concat()
+
 st.session_state['df_uci'] = df
 # Transformando valores e tipos de dados
 df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'})
@@ -225,6 +231,10 @@ sns.boxplot(x='studytime', y='G3', data=df, ax=ax)
 ax.set_title('Tempo de Estudo vs Nota Final')
 ax.set_xlabel('Tempo de Estudo Semanal')
 ax.set_ylabel('Nota Final')
+
+'''
+
+'''
 
 st.pyplot(fig)
 plt.clf()
