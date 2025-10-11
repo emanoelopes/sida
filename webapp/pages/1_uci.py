@@ -86,6 +86,10 @@ ax.plot(xs, ys, color='red')
 fig.suptitle('Notas finais')
 st.pyplot(fig)
 
+'''
+O diagrama exibe uma distribuição bimodal das notas finais, sinalizando a presença de uma maioria de estudantes com desempenho médio e um subgrupo menor, porém significativo, com desempenho muito baixo ou nulo.
+'''
+
 
 st.markdown("## Explorando os valores numéricos")
 numeric_df = df.select_dtypes('number')
@@ -376,12 +380,12 @@ ax.set_title("Importância das classes")
 fig.tight_layout()
 st.pyplot(fig)
 
-
-st.markdown("## Conclusão")
-
 """
 Foi possível observar que a notal final (G3) é fortemente influenciada, em termos absolutos, pelas notas anteriores e a quantidade de faltas.
 """
+'''
+## Conclusão
+'''
 
 # Salvando os resultados no formato pickle
 
