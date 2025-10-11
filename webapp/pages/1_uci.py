@@ -50,55 +50,13 @@ df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
-st.markdown('## Distribuição das notas')
-
-fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
-ax[0].set_title('Distribuição das Notas G1')
-sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
-ax[1].set_title('Distribuição das Notas G2')
-sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
-ax[2].set_title('Distribuição das Notas G3')
-plt.tight_layout()
-st.pyplot(fig)
-plt.clf()   
-
-'''
-## Avaliando a normalidade da classe G3
-'''
-
-import numpy as np
-from scipy.stats import norm
-
-media = df['G3'].mean()
-desvio_padrao = df['G3'].std()
-v_min = df['G3'].min()
-v_max = df['G3'].max()
-
-xs = np.linspace(v_min, v_max, 10_000)
-ys = norm.pdf(xs, loc=media, scale=desvio_padrao)
-
-fig, ax = plt.subplots(figsize=(18, 8))
-
-sns.histplot(data=df, ax=ax, x='G3', binwidth=1.0, kde=True, stat='density')
-ax.plot(xs, ys, color='red')
-
-fig.suptitle('Notas finais')
-st.pyplot(fig)
-
-'''
-O diagrama exibe uma distribuição bimodal das notas finais, sinalizando a presença de uma maioria de estudantes com desempenho médio e um subgrupo menor, porém significativo, com desempenho muito baixo ou nulo.
-'''
-
-
 st.markdown("## Explorando os valores numéricos")
 numeric_df = df.select_dtypes('number')
 
 
 # Create visualization selection in sidebar
 with st.sidebar:
-    st.markdown("### Visualização dos dados numéricos")
-    st.write("Selecione o tipo de visualização:")
+    st.markdown("### Distribuições dos dados numéricos")
     viz_type = st.selectbox(
         "Tipo de Visualização",
         ["Box Plot", "Histograma", "Violin Plot"]
@@ -160,11 +118,54 @@ else:
     st.write("Nenhuma coluna numérica encontrada.")
 
 """
-As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é um pouco maior 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da mediana com uma dispersão aceitável, coeficiente de variação em torno de 27%.
+As distribuições dos dados numéricos mostram que a faixa etária é, na sua maioria, entre 15 e 19 anos. O valor médio de horas semanais livres é um pouco maior 3h. A quantidade de faltas concentra-se próximo a zero. As notas, de um modo geral, estão concentradas em valores acima da mediana com uma dispersão aceitável, coeficiente de variação em torno de 27%, sugerindo que a distribuição é razoavelmente moderada, pois mostra que os dados não estão muito dispersos, mas ainda há alguma variação significativa nos valores analisados.
 """
-"""
-## Explorando os valores categóricos
-"""
+
+st.markdown('## Distribuição das notas')
+
+fig, ax = plt.subplots(1, 3, figsize=(18, 5))
+sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
+ax[0].set_title('Distribuição das Notas G1')
+sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
+ax[1].set_title('Distribuição das Notas G2')
+sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
+ax[2].set_title('Distribuição das Notas G3')
+plt.tight_layout()
+st.pyplot(fig)
+plt.clf()   
+
+'''
+Os três histogramas de densidade, mostram uma evolução do grupo de alunos que obtiveram nota zero ou próxima de zero.
+'''
+
+'''
+## Avaliando a normalidade da classe G3
+'''
+
+import numpy as np
+from scipy.stats import norm
+
+media = df['G3'].mean()
+desvio_padrao = df['G3'].std()
+v_min = df['G3'].min()
+v_max = df['G3'].max()
+
+xs = np.linspace(v_min, v_max, 10_000)
+ys = norm.pdf(xs, loc=media, scale=desvio_padrao)
+
+fig, ax = plt.subplots(figsize=(18, 8))
+
+sns.histplot(data=df, ax=ax, x='G3', binwidth=1.0, kde=True, stat='density')
+ax.plot(xs, ys, color='red')
+
+fig.suptitle('Notas finais')
+st.pyplot(fig)
+
+'''
+O diagrama exibe uma distribuição bimodal das notas finais, sinalizando a presença de uma maioria de estudantes com desempenho médio e um subgrupo menor, porém significativo, com desempenho muito baixo ou nulo.
+'''
+
+st.markdown('## Explorando os valores categóricos')
 
 st.session_state['cat_columns'] = df.select_dtypes('object').describe().T
 
@@ -385,6 +386,8 @@ Foi possível observar que a notal final (G3) é fortemente influenciada, em ter
 """
 '''
 ## Conclusão
+
+A análise dos dados mostra que a maioria dos estudantes tem entre 15 e 19 anos, com uma média de horas semanais livres um pouco acima de 3h, e a maior parte das faltas concentra-se próximo a zero. As notas finais estão concentradas acima da mediana com dispersão aceitável, tendo coeficiente de variação em torno de 27%. O gráfico indica uma ligeira tendência de queda na nota final conforme o número de faltas aumenta, especialmente a partir da faixa de 11-15 faltas, onde estudantes com menos de 10 faltas alcançam notas máximas e concentram-se entre 10 e 14 pontos  . A correlação entre horas de estudo e pontuação final revela que 75% dos alunos que dedicam menos de 2 horas por semana obtêm pontuação inferior a 13, enquanto aqueles que estudam de 5 a 10h têm concentração de notas mais altas  . Uma análise das notas finais por gênero mostra que, apesar da distribuição e variabilidade serem parecidas, a mediana das notas femininas é um pouco mais alta que a dos homens  .
 '''
 
 # Salvando os resultados no formato pickle
