@@ -183,10 +183,21 @@ for col in merged_df.select_dtypes(include='object').columns:
 
 st.write('# Análise Exploratória de Dados (EDA) - OULAD')
 
+'''
+Esta página apresenta uma Análise Exploratória dos Dados do OULAD (Open University Learning Analytics Dataset), com foco em entender o perfil dos estudantes, suas atividades na plataforma e fatores que influenciam o desempenho acadêmico . Através de visualizações, são identificados padrões relevantes, como a predominância de estudantes do gênero masculino e a distribuição etária dos estudantes.
+'''
+
 st.markdown("## Descrição estatísticas das colunas numéricas:")
 st.dataframe(merged_df.select_dtypes('number').describe().T.round(2))
 
-st.write('## Distribuição de Notas Finais dos Estudantes')
+'''
+A grande diferença entre a mediana (≈2) e a média (≈4.65) do número de cliques indica que a maioria dos estudantes tem engajamento moderado, mas uma pequena parcela é extremamente ativa, elevando a média geral.
+
+O número de tentativas anteriores é zero para a vasta maioria dos estudantes (quartis e valor máximo são 0), sugerindo que o conjunto de dados está focado na performance na primeira tentativa.
+'''
+
+
+st.write('## Distribuição das notas finais dos estudantes')
 plt.figure(figsize=(10, 6))
 sns.histplot(merged_df['score'], bins=30, kde=True)
 plt.title('Distribuição de Notas Finais dos Estudantes')
@@ -194,6 +205,10 @@ plt.xlabel('Nota Final')
 plt.ylabel('Frequência')
 st.pyplot(plt)
 plt.clf()
+
+'''
+Com base no histograma, a maioria dos estudantes obteve notas finais elevadas, concentrando-se principalmente na faixa de 70 a 90. Há uma distribuição que parece ser bimodal ou multimodal, com picos notáveis e uma frequência menor de notas mais baixas.
+'''
 
 st.write('## Distribuição de Atividades por Tipo')
 plt.figure(figsize=(10, 6))
@@ -204,6 +219,11 @@ plt.ylabel('Contagem')
 plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
+
+'''
+A atividade mais realizada é a 'outcontent' com quase o dobro de execuções em relação à segunda posição que é 'forumng'. 
+'''
+
 
 st.markdown('Explorando valores categóricos')
 ## Explorando valores categóricos
