@@ -135,7 +135,7 @@ st.pyplot(fig)
 plt.clf()   
 
 '''
-Os três histogramas de densidade, mostram uma evolução do grupo de alunos que obtiveram nota zero ou próxima de zero.
+Os três histogramas de densidade mostram uma evolução do grupo de alunos que obtiveram nota zero ou próxima de zero.
 '''
 
 '''
@@ -224,7 +224,7 @@ st.pyplot(fig)
 plt.clf()
 
 '''
-A idade é diretamente proporcionais às quantidade de faltas e falhas (notas baixas) e estas, por sua vez, possuem relação direta com tempo livre e faltas. As notas finais, possuem uma forte correlação com as notas do primeiro bimestre e, mais ainda, com as do segundo bimestre, 0.81 e 0.91, respectivamente.
+A idade tem uma relação direta com a quantidade de faltas e falhas (notas baixas), que por sua vez têm uma ligação direta com o tempo livre e ausência. As notas finais apresentam uma forte relação com as notas do primeiro bimestre e, ainda, com as notas do segundo bimestre, de 0,81 e 0,91, respectivamente.
 '''
 
 # 2. Análise da relação entre consumo de álcool e desempenho acadêmico
