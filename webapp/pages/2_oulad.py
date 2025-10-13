@@ -32,6 +32,7 @@ for filename in os.listdir(datasets_oulad_path):
         except Exception as e:
             print(f"Erro ao carregar o arquivo '{filename}': {e}")
 
+
 df_assessments = dataframes_oulad['assessments'].head(10_000)
 df_courses = dataframes_oulad['courses'].head(10_000)
 df_vle = dataframes_oulad['vle'].head(10_000)
@@ -152,11 +153,16 @@ df_student_registration_copy['date_unregistration'] = df_student_registration_co
 df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
 
 # Junção dos dados
+@st.cache_data
+def merge_dataframes():
+    vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
+    assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
+    studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
+    merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+    return merged_df
 
-vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
-assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
-studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
-merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+merged_df = merge_dataframes()
+st.session_state['merged_df'] = merged_df
 
 # Merge with courses dataframe
 merged_df = pd.merge(merged_df, df_courses, on=['code_presentation'], how='inner')
@@ -177,10 +183,21 @@ for col in merged_df.select_dtypes(include='object').columns:
 
 st.write('# Análise Exploratória de Dados (EDA) - OULAD')
 
+'''
+Esta página apresenta uma Análise Exploratória dos Dados do OULAD (Open University Learning Analytics Dataset), com foco em entender o perfil dos estudantes, suas atividades na plataforma e fatores que influenciam o desempenho acadêmico . Através de visualizações, são identificados padrões relevantes, como a predominância de estudantes do gênero masculino e a distribuição etária dos estudantes.
+'''
+
 st.markdown("## Descrição estatísticas das colunas numéricas:")
 st.dataframe(merged_df.select_dtypes('number').describe().T.round(2))
 
-st.write('## Distribuição de Notas Finais dos Estudantes')
+'''
+A grande diferença entre a mediana (≈2) e a média (≈4.65) do número de cliques indica que a maioria dos estudantes tem engajamento moderado, mas uma pequena parcela é extremamente ativa, elevando a média geral.
+
+O número de tentativas anteriores é zero para a vasta maioria dos estudantes (quartis e valor máximo são 0), sugerindo que o conjunto de dados está focado na performance na primeira tentativa.
+'''
+
+
+st.write('## Distribuição das notas finais dos estudantes')
 plt.figure(figsize=(10, 6))
 sns.histplot(merged_df['score'], bins=30, kde=True)
 plt.title('Distribuição de Notas Finais dos Estudantes')
@@ -188,6 +205,10 @@ plt.xlabel('Nota Final')
 plt.ylabel('Frequência')
 st.pyplot(plt)
 plt.clf()
+
+'''
+Com base no histograma, a maioria dos estudantes obteve notas finais elevadas, concentrando-se principalmente na faixa de 70 a 90. Há uma distribuição que parece ser bimodal ou multimodal, com picos notáveis e uma frequência menor de notas mais baixas.
+'''
 
 st.write('## Distribuição de Atividades por Tipo')
 plt.figure(figsize=(10, 6))
@@ -198,6 +219,11 @@ plt.ylabel('Contagem')
 plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
+
+'''
+A atividade mais realizada é a 'outcontent' com quase o dobro de execuções em relação à segunda posição que é 'forumng'. 
+'''
+
 
 st.markdown('Explorando valores categóricos')
 ## Explorando valores categóricos
@@ -259,7 +285,7 @@ st.markdown("Preparação dos dados para modelos de ML...")
 Y = merged_df['final_result']
 X = merged_df.loc[:, merged_df.columns != 'final_result']
 
-st.markdown('Removendo as colunas irrelevantes ou com alta cardinalidade...')
+st.markdown('Removendo as classes irrelevantes ou com alta cardinalidade...')
 X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1)
 
 from sklearn.model_selection import train_test_split

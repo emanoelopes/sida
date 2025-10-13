@@ -3,17 +3,27 @@ import streamlit as st
 
 st.sidebar.markdown(
     '''
-    Mestrado Profissional | PPGTE | IUVI 
+    Mestrado Profissional
+    PPGTE
+    IUVI
 
     Orientador: 
     Prof. Leonardo Oliveira Moreira
+
     Aluno:
     [Emanoel Lopes](http://emanoel.pro.br)
     '''
     )
 
-st.markdown('# Sistema de Identificação de Dificuldades de Aprendizagem')
+st.markdown('# Sistema de Identificação de Dificuldades de Aprendizagem ')
 st.divider()
+
+# Display the dataframe from session state
+if "df_uci" in st.session_state:
+    st.dataframe(st.session_state["df_uci"])
+else:
+    st.write("Nenhum dado disponível. Por favor, navegue para a página UCI primeiro.")
+
 st.markdown(
     '''
 
