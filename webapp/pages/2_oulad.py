@@ -6,9 +6,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import missingno as msno
 import numpy as np
+import pickle
+
 
 st.set_page_config(
-    page_title="Informações Básicas dos Dados do OULAD",
+    page_title="Análise Exploratória dos Dados - OULAD",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -221,25 +223,17 @@ st.pyplot(plt)
 plt.clf()
 
 '''
-A atividade mais realizada é a 'outcontent' com quase o dobro de execuções em relação à segunda posição que é 'forumng'. 
+A atividade mais realizada é a 'outcontent' com quase o dobro de execuções em relação à segunda posição que é 'forumng'. A distribuição é acentuadamente desigual, com poucas atividades (como "forumng" e "subpage") tendo uso moderado.
 '''
 
 
-st.markdown('Explorando valores categóricos')
+st.markdown('## Explorando valores categóricos')
 ## Explorando valores categóricos
 st.dataframe(merged_df.select_dtypes('object').describe().T)
 
-st.warning('Por meio da análise dos dados categóricos, os estudantes são, na sua maioria, do gênero masculino, até 35 anos, que realizaram a atividade do tipo fórum na plataforma e foram aprovados.')
-
-st.write('## Contagem de Estudantes por Região')
-plt.figure(figsize=(10, 6))
-sns.countplot(data=merged_df, x='region', order=merged_df['region'].value_counts().index)
-plt.title('Contagem de Estudantes por Região')
-plt.xlabel('Região')
-plt.ylabel('Contagem')
-plt.xticks(rotation=45)
-st.pyplot(plt)
-plt.clf()
+"""
+Por meio da análise dos dados categóricos, os estudantes são, na sua maioria, do gênero masculino, até 35 anos, que realizaram a atividade do tipo fórum na plataforma e foram aprovados.
+"""
 
 st.write('## Distribuição de Estudantes por Idade')
 plt.figure(figsize=(10, 6))
@@ -250,6 +244,11 @@ plt.ylabel('Frequência')
 st.pyplot(plt)
 plt.clf()
 
+'''
+Este histograma revela que a maioria dos estudantes se encontra na faixa etária de 35 a 55 anos e a faixa etária dentro do grupo 0-35 é o segundo maior contingente, enquanto estudantes com mais de 55 anos são a minoria.
+'''
+
+
 st.write('## Distribuição de Estudantes por Gênero')
 plt.figure(figsize=(6, 6))
 sns.countplot(data=merged_df['gender'])
@@ -258,6 +257,10 @@ plt.xlabel('Gênero')
 plt.ylabel('Contagem')
 st.pyplot(plt)
 plt.clf()
+
+'''
+A diferença na quantidade entre os gêneros masculino e feminino é algo em torno de 60% 
+'''
 
 st.write('## Distribuição de Estudantes por Região')
 plt.figure(figsize=(10, 6))
@@ -269,6 +272,10 @@ plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
 
+"""
+As regiões "South West Region" e "South Region" detêm a maior concentração de estudantes, resultando em uma leve predominância do sul da Inglaterra. A distribuição é relativamente decrescente e sem discrepâncias abruptas.
+"""
+
 st.write('## Distribuição dos Estudantes por Resultado Final')
 plt.figure(figsize=(6, 6))
 sns.countplot(data=merged_df['final_result'], order=merged_df['final_result'].value_counts().index)
@@ -278,6 +285,9 @@ plt.ylabel('Contagem')
 st.pyplot(plt)
 plt.clf()
 
+'''
+a grande maioria dos estudantes obteve o resultado "Pass" (Aprovado), superando vastamente as outras categorias. Os resultados de "Distinction" (Aprovação com mérito), "Withdrawn" (Desistente) e "Fail" (Reprovado) representam uma proporção muito menor do total de alunos, indicando uma alta taxa de sucesso geral.
+'''
 
 st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
 
@@ -362,3 +372,7 @@ st.pyplot(fig)
 
 st.markdown("## Conclusão")
 st.markdown("Nesta análise exploratória dos dados do OULAD, conseguimos entender melhor o perfil dos estudantes, suas atividades na plataforma e os fatores que influenciam seu desempenho acadêmico. Através da visualização dos dados, identificamos padrões interessantes, como a predominância de estudantes do gênero masculino e a distribuição etária dos participantes. Além disso, o treinamento do modelo de aprendizado de máquina nos permitiu avaliar a importância das diferentes características dos dados, destacando quais fatores têm maior impacto no resultado final dos estudantes. Essas informações são valiosas para instituições educacionais que buscam melhorar a experiência de aprendizagem e o suporte oferecido aos alunos. Futuras análises podem aprofundar ainda mais esses insights, explorando outras variáveis e utilizando técnicas avançadas de modelagem preditiva.")
+
+with open('oulad.pkl', 'wb') as f:
+    pickle.dump(ml_model, f)
+    f.close()
