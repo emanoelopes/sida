@@ -1,3 +1,4 @@
 {
-    "continue.remoteConfigServerUrl": ""
+    "continue.remoteConfigServerUrl": "",
+    "CodeGPT.apiKey": "Huggingface"
 }

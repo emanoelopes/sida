@@ -62,7 +62,12 @@ with st.sidebar:
         "Tipo de Visualização",
         ["Box Plot", "Histograma", "Violin Plot"]
     )
-
+    st.markdown("---")
+    st.markdown("### Experimente")
+    analyzer = st.selectbox(
+        "Analisador",
+        ["UCI EDA", "OULAD EDA"]
+    ) 
     st.markdown("---")
     st.markdown("## Informações")
     st.write(f"**Número de Instâncias:** {df.shape[0]}")
@@ -305,7 +310,9 @@ plt.clf()
 O gráfico indica uma ligeira tendência de queda na nota final conforme o número de faltas aumenta, especialmente a partir da faixa de 11-15 faltas. Estudantes que apresentam menos de 10 faltas alcançam notas máximas e concentram-se entre 10 e 14 pontos. As notas medianas e máximas observadas demonstram uma redução significativa quando superior a 16 faltas.
 '''
 
-st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
+"""
+## Importância das classes em relação ao resultado final\
+"""
 
 st.markdown("Preparação dos dados para modelos de ML...")
 Y = df['G3']
@@ -365,11 +372,6 @@ st.markdown(f"Mean Absolute Error (MAE): {mae:.2f}")
 st.markdown(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
 st.markdown(f"R-squared (R2): {r2:.2f}")
 
-
-"""
-## Importância das classes em relação ao resultado final\
-"""
-
 from sklearn.inspection import permutation_importance
 
 result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
@@ -395,3 +397,16 @@ A análise dos dados mostra que a maioria dos estudantes tem entre 15 e 19 anos,
 with open('uci.pkl', 'wb') as f:
     pickle.dump(model, f)
     f.close()
+
+# PyGWalker
+
+import pygwalker as pyg
+from pygwalker.api.streamlit import StreamlitRenderer
+
+if "df_uci" in st.session_state:
+    df = st.session_state['df_uci']
+    walker = pyg.walk(df)
+else:
+    st.write("Nenhum dado disponível. Por favor, navegue para a página UCI primeiro.")
+
+    

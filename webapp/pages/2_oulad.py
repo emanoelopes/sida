@@ -289,7 +289,7 @@ plt.clf()
 a grande maioria dos estudantes obteve o resultado "Pass" (Aprovado), superando vastamente as outras categorias. Os resultados de "Distinction" (Aprovação com mérito), "Withdrawn" (Desistente) e "Fail" (Reprovado) representam uma proporção muito menor do total de alunos, indicando uma alta taxa de sucesso geral.
 '''
 
-st.markdown("## Entendendo as relações das classes utilizando Aprendizado de Máquina")
+st.markdown('## Analisando  a importância das classes (feature importance)')
 
 st.markdown("Preparação dos dados para modelos de ML...")
 Y = merged_df['final_result']
@@ -348,8 +348,6 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 # st.write(classification_report(y_test, predictions, zero_division=0))
 # st.write(confusion_matrix(y_test, predictions))
-
-st.markdown('## Analisando  a importância das classes (feature importance)')
 
 from sklearn.inspection import permutation_importance
 import pandas as pd
