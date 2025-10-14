@@ -5,9 +5,10 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import pickle
 
 st.set_page_config(
-    page_title="Informações Básicas do Conjunto de Dados UCI",
+    page_title="Análise Exploratória dos Dados - UCI",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -391,10 +392,6 @@ A análise dos dados mostra que a maioria dos estudantes tem entre 15 e 19 anos,
 '''
 
 # Salvando os resultados no formato pickle
-
-import pickle
-from pathlib import Path
-
 with open('uci.pkl', 'wb') as f:
     pickle.dump(model, f)
     f.close()
