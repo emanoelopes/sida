@@ -74,7 +74,7 @@ with st.sidebar:
     st.markdown("---")
     
     ### footer
-    st.markdown("Mestrado em Tecnologias Educacional - UFC")
+    st.markdown("Mestrado em Tecnologia Educacional - UFC")
 
 # Create visualization section
 st.markdown("### Visualização das distribuições dos dados numéricos ")
