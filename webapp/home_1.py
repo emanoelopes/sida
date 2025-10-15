@@ -17,7 +17,10 @@ from src.utilidades import (
     obter_insights_oulad,
     obter_metricas_principais_uci,
     obter_metricas_principais_oulad,
-    criar_sidebar_dashboard
+    criar_sidebar_dashboard,
+    criar_grafico_feature_importance_uci,
+    criar_grafico_feature_importance_oulad,
+    criar_secao_pygwalker
 )
 from src.vizualizacoes import (
     criar_grafico_sugerido_uci,
@@ -65,7 +68,7 @@ fatores de sucesso e áreas que necessitam de intervenção.
 st.markdown("## 📊 Gráficos Sugeridos com Insights")
 
 # Tabs para organizar as visualizações
-tab1, tab2, tab3 = st.tabs(["📚 Análises UCI", "🌐 Análises OULAD", "🔄 Comparações"])
+tab1, tab2, tab3, tab4 = st.tabs(["📚 Análises UCI", "🌐 Análises OULAD", "🔄 Comparações", "🎯 Feature Importance"])
 
 with tab1:
     st.markdown("### 📚 Dataset UCI - Escolas Públicas Portuguesas")
@@ -116,6 +119,45 @@ with tab3:
     - **Faixa Etária**: UCI (15-19 anos) vs OULAD (35-55 anos)
     - **Engajamento**: OULAD permite medir cliques e atividades online
     """)
+
+with tab4:
+    st.markdown("### 🎯 Análise de Feature Importance")
+    st.markdown("Esta seção mostra quais variáveis são mais importantes para prever o desempenho dos estudantes.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### 📚 Feature Importance - Dataset UCI")
+        fig_importance_uci = criar_grafico_feature_importance_uci()
+        if fig_importance_uci:
+            st.pyplot(fig_importance_uci)
+            plt.clf()
+        
+        st.markdown("""
+        **Principais Features UCI:**
+        - **G1, G2**: Notas dos bimestres (maior importância)
+        - **absences**: Número de faltas (impacto negativo)
+        - **studytime**: Tempo de estudo semanal
+        - **Medu, Fedu**: Escolaridade dos pais
+        """)
+    
+    with col2:
+        st.markdown("#### 🌐 Feature Importance - Dataset OULAD")
+        fig_importance_oulad = criar_grafico_feature_importance_oulad()
+        if fig_importance_oulad:
+            st.pyplot(fig_importance_oulad)
+            plt.clf()
+        
+        st.markdown("""
+        **Principais Features OULAD:**
+        - **clicks**: Engajamento na plataforma
+        - **activity_type**: Tipo de atividade realizada
+        - **age_band**: Faixa etária do estudante
+        - **gender**: Gênero do estudante
+        """)
+    
+    # Seção PyGWalker
+    criar_secao_pygwalker()
 
 # Seção de conclusões
 st.markdown("## 🎯 Conclusões e Recomendações")

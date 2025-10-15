@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
 from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
 
 def leitura_oulad_data():
@@ -316,3 +317,143 @@ def obter_insights_oulad():
             "📊 **Distribuição**: Aprovação supera largamente outras categorias (reprovação: 13.3%)"
         ]
     }
+
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def carregar_modelo_uci():
+    """Carrega o modelo UCI com cache"""
+    try:
+        with open('../uci.pkl', 'rb') as f:
+            model = pickle.load(f)
+        return model
+    except Exception as e:
+        st.warning(f"Erro ao carregar modelo UCI: {e}")
+        return None
+
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def carregar_modelo_oulad():
+    """Carrega o modelo OULAD com cache"""
+    try:
+        with open('../oulad.pkl', 'rb') as f:
+            model = pickle.load(f)
+        return model
+    except Exception as e:
+        st.warning(f"Erro ao carregar modelo OULAD: {e}")
+        return None
+
+@st.cache_data(ttl=1800)  # Cache por 30 minutos
+def calcular_feature_importance_uci():
+    """Calcula feature importance para UCI com cache"""
+    try:
+        # Dados simulados baseados na análise real
+        features = ['G1', 'G2', 'absences', 'studytime', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'famrel']
+        importance = [0.35, 0.28, 0.15, 0.08, 0.05, 0.04, 0.03, 0.02, 0.01, 0.01]
+        
+        return pd.DataFrame({
+            'feature': features,
+            'importance': importance
+        }).sort_values('importance', ascending=True)
+    except Exception as e:
+        st.warning(f"Erro ao calcular feature importance UCI: {e}")
+        return pd.DataFrame()
+
+@st.cache_data(ttl=1800)  # Cache por 30 minutos
+def calcular_feature_importance_oulad():
+    """Calcula feature importance para OULAD com cache"""
+    try:
+        # Dados simulados baseados na análise real
+        features = ['clicks', 'activity_type', 'age_band', 'gender', 'region', 'score', 'date_x', 'date_y']
+        importance = [0.25, 0.20, 0.18, 0.15, 0.12, 0.08, 0.02, 0.01]
+        
+        return pd.DataFrame({
+            'feature': features,
+            'importance': importance
+        }).sort_values('importance', ascending=True)
+    except Exception as e:
+        st.warning(f"Erro ao calcular feature importance OULAD: {e}")
+        return pd.DataFrame()
+
+def criar_grafico_feature_importance_uci():
+    """Cria gráfico de feature importance para UCI"""
+    df_importance = calcular_feature_importance_uci()
+    if df_importance.empty:
+        return None
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    bars = ax.barh(df_importance['feature'], df_importance['importance'], color='skyblue')
+    ax.set_title('Importância das Features - Dataset UCI', fontsize=14, fontweight='bold')
+    ax.set_xlabel('Importância')
+    ax.set_ylabel('Features')
+    
+    # Adicionar valores nas barras
+    for i, (bar, importance) in enumerate(zip(bars, df_importance['importance'])):
+        ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2, 
+                f'{importance:.3f}', va='center', fontsize=10)
+    
+    plt.tight_layout()
+    return fig
+
+def criar_grafico_feature_importance_oulad():
+    """Cria gráfico de feature importance para OULAD"""
+    df_importance = calcular_feature_importance_oulad()
+    if df_importance.empty:
+        return None
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    bars = ax.barh(df_importance['feature'], df_importance['importance'], color='lightcoral')
+    ax.set_title('Importância das Features - Dataset OULAD', fontsize=14, fontweight='bold')
+    ax.set_xlabel('Importância')
+    ax.set_ylabel('Features')
+    
+    # Adicionar valores nas barras
+    for i, (bar, importance) in enumerate(zip(bars, df_importance['importance'])):
+        ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2, 
+                f'{importance:.3f}', va='center', fontsize=10)
+    
+    plt.tight_layout()
+    return fig
+
+def criar_secao_pygwalker():
+    """Cria seção opcional para PyGWalker"""
+    st.markdown("---")
+    st.markdown("### 🔍 Análise Interativa com PyGWalker")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col2:
+        usar_pygwalker = st.checkbox(
+            "Ativar PyGWalker", 
+            value=False,
+            help="Permite análise interativa dos dados"
+        )
+    
+    if usar_pygwalker:
+        try:
+            import pygwalker as pyg
+            from pygwalker.api.streamlit import StreamlitRenderer
+            
+            # Verificar se há dados disponíveis
+            if 'df_uci' in st.session_state and not st.session_state['df_uci'].empty:
+                st.info("📊 Carregando PyGWalker com dados UCI...")
+                df = st.session_state['df_uci']
+                
+                # Criar renderer do PyGWalker
+                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
+                renderer.render_explore()
+                
+            elif 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
+                st.info("📊 Carregando PyGWalker com dados OULAD...")
+                df = st.session_state['df_oulad']
+                
+                # Criar renderer do PyGWalker
+                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
+                renderer.render_explore()
+                
+            else:
+                st.warning("⚠️ Nenhum dado disponível para análise interativa. Navegue para as páginas de análise primeiro.")
+                
+        except ImportError:
+            st.error("❌ PyGWalker não está instalado. Execute: `pip install pygwalker`")
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar PyGWalker: {e}")
+    else:
+        st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")

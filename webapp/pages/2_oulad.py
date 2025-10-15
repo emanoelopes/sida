@@ -155,7 +155,7 @@ df_student_registration_copy['date_unregistration'] = df_student_registration_co
 df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
 
 # Junção dos dados
-@st.cache_data
+@st.cache_data(ttl=3600)  # Cache por 1 hora
 def merge_dataframes():
     vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
     assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
@@ -302,43 +302,45 @@ from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-from re import M
-# treinamento do modelo
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-import pandas as pd
+@st.cache_data(ttl=7200)  # Cache por 2 horas
+def treinar_modelo_oulad(X_train, y_train):
+    """Treina o modelo OULAD com cache"""
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
+    import pandas as pd
+    
+    # Drop rows with NaN in y_train
+    nan_rows_train = y_train.isnull()
+    X_train_cleaned = X_train[~nan_rows_train].copy()
+    y_train_cleaned = y_train[~nan_rows_train].copy()
+    
+    # Identify categorical and numerical columns
+    categorical_cols = X_train_cleaned.select_dtypes(include='object').columns
+    numerical_cols = X_train_cleaned.select_dtypes(include=np.number).columns
+    
+    # Create a column transformer to apply different preprocessing steps to different column types
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', SimpleImputer(strategy='mean'), numerical_cols),
+            ('cat', Pipeline(steps=[
+                ('imputer', SimpleImputer(strategy='most_frequent')),
+                ('onehot', OneHotEncoder(handle_unknown='ignore'))]), categorical_cols)
+        ],
+        remainder='passthrough' # Keep other columns (numeric) as they are
+    )
+    
+    # Create a pipeline that first preprocesses the data and then trains the model
+    ml_model = Pipeline(steps=[('preprocessor', preprocessor),
+                               ('classifier', RandomForestClassifier(n_estimators=50, n_jobs=2, max_depth=4, random_state=42))])
+    
+    # Train the model
+    ml_model.fit(X_train_cleaned, y_train_cleaned)
+    return ml_model
 
-# Drop rows with NaN in y_train
-nan_rows_train = y_train.isnull()
-X_train_cleaned = X_train[~nan_rows_train].copy()
-y_train_cleaned = y_train[~nan_rows_train].copy()
-
-# Identify categorical and numerical columns
-categorical_cols = X_train_cleaned.select_dtypes(include='object').columns
-numerical_cols = X_train_cleaned.select_dtypes(include=np.number).columns
-
-
-# Create a column transformer to apply different preprocessing steps to different column types
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', SimpleImputer(strategy='mean'), numerical_cols),
-        ('cat', Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='most_frequent')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore'))]), categorical_cols)
-    ],
-    remainder='passthrough' # Keep other columns (numeric) as they are
-)
-
-# Create a pipeline that first preprocesses the data and then trains the model
-ml_model = Pipeline(steps=[('preprocessor', preprocessor),
-                           ('classifier', RandomForestClassifier(n_estimators=50, n_jobs=2, max_depth=4, random_state=42))])
-
-# Train the model
-ml_model.fit(X_train_cleaned, y_train_cleaned)
+ml_model = treinar_modelo_oulad(X_train, y_train)
 
 st.markdown("Modelo treinado com sucesso!")
 st.markdown("Avaliando do modelo...")
