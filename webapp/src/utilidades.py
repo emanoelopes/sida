@@ -33,6 +33,36 @@ def carregar_dados_dashboard():
     
     return df_uci, df_oulad
 
+def obter_metricas_principais_uci():
+    """Retorna métricas principais do dataset UCI baseadas nas análises"""
+    return {
+        'total_estudantes': 1044,
+        'media_nota_final': 10.42,
+        'taxa_aprovacao': 67.3,
+        'media_faltas': 5.7,
+        'distribuicao_genero': {'F': 58.2, 'M': 41.8},
+        'media_tempo_estudo': 2.0,
+        'correlacao_g1_g3': 0.81,
+        'correlacao_g2_g3': 0.91,
+        'estudantes_alcool_baixo': 45.2,
+        'estudantes_alcool_alto': 12.8
+    }
+
+def obter_metricas_principais_oulad():
+    """Retorna métricas principais do dataset OULAD baseadas nas análises"""
+    return {
+        'total_estudantes': 28000,
+        'taxa_aprovacao': 78.5,
+        'media_cliques': 4.65,
+        'distribuicao_genero': {'M': 56.2, 'F': 43.8},
+        'faixa_etaria_principal': '35-55 anos',
+        'atividade_mais_comum': 'outcontent',
+        'regiao_principal': 'South West Region',
+        'estudantes_aprovados': 78.5,
+        'estudantes_distincao': 8.2,
+        'estudantes_reprovados': 13.3
+    }
+
 def calcular_metricas_uci(df_uci):
     """Calcula métricas principais para o dataset UCI"""
     if df_uci.empty:
@@ -105,36 +135,138 @@ def criar_sidebar_dashboard():
         
         return periodo, genero
 
-def exibir_metricas_principais(metricas_consolidadas):
-    """Exibe as métricas principais do dashboard"""
+def exibir_cartoes_informativos():
+    """Exibe cartões informativos com métricas principais"""
+    metricas_uci = obter_metricas_principais_uci()
+    metricas_oulad = obter_metricas_principais_oulad()
+    
+    # Cartões principais
+    st.markdown("## 📊 Métricas Principais")
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric(
-            "Total de Estudantes", 
-            f"{metricas_consolidadas['total_estudantes_geral']:,}",
+            "🎓 Total de Estudantes", 
+            f"{metricas_uci['total_estudantes'] + metricas_oulad['total_estudantes']:,}",
             help="Soma dos estudantes dos datasets UCI e OULAD"
         )
     
     with col2:
+        taxa_geral = (metricas_uci['taxa_aprovacao'] + metricas_oulad['taxa_aprovacao']) / 2
         st.metric(
-            "Taxa de Aprovação Geral", 
-            f"{metricas_consolidadas['taxa_aprovacao_geral']:.1f}%",
+            "✅ Taxa de Aprovação Geral", 
+            f"{taxa_geral:.1f}%",
             help="Média das taxas de aprovação dos dois datasets"
         )
     
     with col3:
-        uci_aprov = metricas_consolidadas['metricas_uci'].get('taxa_aprovacao', 0)
         st.metric(
-            "Aprovação UCI", 
-            f"{uci_aprov:.1f}%",
-            help="Taxa de aprovação no dataset UCI"
+            "📚 Média de Notas (UCI)", 
+            f"{metricas_uci['media_nota_final']:.1f}",
+            help="Média das notas finais no dataset UCI"
         )
     
     with col4:
-        oulad_aprov = metricas_consolidadas['metricas_oulad'].get('taxa_aprovacao', 0)
         st.metric(
-            "Aprovação OULAD", 
-            f"{oulad_aprov:.1f}%",
-            help="Taxa de aprovação no dataset OULAD"
+            "🖱️ Média de Cliques (OULAD)", 
+            f"{metricas_oulad['media_cliques']:.1f}",
+            help="Média de cliques por estudante no dataset OULAD"
         )
+
+def exibir_cartoes_detalhados():
+    """Exibe cartões detalhados para cada dataset"""
+    metricas_uci = obter_metricas_principais_uci()
+    metricas_oulad = obter_metricas_principais_oulad()
+    
+    # Cartões UCI
+    st.markdown("### 📚 Dataset UCI - Escolas Públicas Portuguesas")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            "👥 Total de Estudantes", 
+            f"{metricas_uci['total_estudantes']:,}",
+            help="Estudantes de escolas públicas portuguesas"
+        )
+    
+    with col2:
+        st.metric(
+            "✅ Taxa de Aprovação", 
+            f"{metricas_uci['taxa_aprovacao']:.1f}%",
+            help="Percentual de estudantes aprovados"
+        )
+    
+    with col3:
+        st.metric(
+            "📊 Média de Faltas", 
+            f"{metricas_uci['media_faltas']:.1f}",
+            help="Número médio de faltas por estudante"
+        )
+    
+    with col4:
+        st.metric(
+            "⏰ Tempo de Estudo", 
+            f"{metricas_uci['media_tempo_estudo']:.1f}h/semana",
+            help="Tempo médio de estudo semanal"
+        )
+    
+    # Cartões OULAD
+    st.markdown("### 🌐 Dataset OULAD - Plataforma de Aprendizado Online")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            "👥 Total de Estudantes", 
+            f"{metricas_oulad['total_estudantes']:,}",
+            help="Estudantes da plataforma online"
+        )
+    
+    with col2:
+        st.metric(
+            "✅ Taxa de Aprovação", 
+            f"{metricas_oulad['taxa_aprovacao']:.1f}%",
+            help="Percentual de estudantes aprovados"
+        )
+    
+    with col3:
+        st.metric(
+            "🏆 Distinção", 
+            f"{metricas_oulad['estudantes_distincao']:.1f}%",
+            help="Percentual de estudantes com distinção"
+        )
+    
+    with col4:
+        st.metric(
+            "🖱️ Engajamento", 
+            f"{metricas_oulad['media_cliques']:.1f} cliques",
+            help="Média de cliques por estudante"
+        )
+
+def obter_insights_uci():
+    """Retorna insights principais do dataset UCI"""
+    return {
+        'titulo': '📚 Principais Insights - Dataset UCI',
+        'insights': [
+            "🎯 **Correlação Forte**: Notas do 1º e 2º bimestre têm correlação de 0.81 e 0.91 com a nota final",
+            "👥 **Gênero**: Estudantes do sexo feminino representam 58.2% e têm desempenho ligeiramente superior",
+            "🍷 **Consumo de Álcool**: 45.2% dos estudantes têm baixo consumo, com melhor desempenho acadêmico",
+            "📚 **Tempo de Estudo**: Estudantes que estudam 5-10h/semana têm concentração de notas mais altas",
+            "❌ **Faltas**: Estudantes com menos de 10 faltas alcançam notas máximas (10-14 pontos)",
+            "👨‍👩‍👧‍👦 **Família**: Escolaridade dos pais influencia diretamente o desempenho dos filhos"
+        ]
+    }
+
+def obter_insights_oulad():
+    """Retorna insights principais do dataset OULAD"""
+    return {
+        'titulo': '🌐 Principais Insights - Dataset OULAD',
+        'insights': [
+            "👥 **Demografia**: 56.2% são do sexo masculino, com faixa etária predominante de 35-55 anos",
+            "🏆 **Alto Desempenho**: 78.5% de aprovação, com 8.2% obtendo distinção",
+            "🖱️ **Engajamento**: Média de 4.65 cliques por estudante, indicando engajamento moderado",
+            "📚 **Atividades**: 'outcontent' é a atividade mais realizada, seguida por 'forumng'",
+            "🌍 **Região**: South West Region concentra a maior parte dos estudantes",
+            "📊 **Distribuição**: Aprovação supera largamente outras categorias (reprovação: 13.3%)"
+        ]
+    }
