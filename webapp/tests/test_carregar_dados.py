@@ -1,6 +1,6 @@
 # tests/test_carregar_dados.py
 import pytest
-from webapp/src.carregar_dados import carregar_uci_dados, carregar_oulad_dados
+from src.carregar_dados import carregar_uci_dados, carregar_oulad_dados
 
 def test_carregar_uci_dados():
     df = carregar_uci_dados()
