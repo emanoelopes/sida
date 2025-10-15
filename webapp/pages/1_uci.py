@@ -37,7 +37,7 @@ por['origem'] = 'por'
 
 # Concatenando os dataframes
 
-@st.cache_data
+@st.cache_data(ttl=3600)  # Cache por 1 hora
 def concat():
     df = pd.concat([mat, por])
     return df
@@ -326,30 +326,36 @@ X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_
 Treinando o modelo...
 """
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+@st.cache_data(ttl=7200)  # Cache por 2 horas
+def treinar_modelo_uci(X_train, y_train):
+    """Treina o modelo UCI com cache"""
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    
+    # Identify categorical columns
+    categorical_features = X_train.select_dtypes(include=['object']).columns
+    
+    # Create a column transformer to apply one-hot encoding
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ],
+        remainder='passthrough' # Keep other columns (numerical)
+    )
+    
+    # Create a pipeline with the preprocessor and the model
+    model = Pipeline(steps=[('preprocessor', preprocessor),
+                          ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))])
+    
+    # Convert the target variable to integers
+    y_train = y_train.astype(float) # Convert to float for regression
+    
+    model.fit(X_train, y_train)
+    return model
 
-# Identify categorical columns
-categorical_features = X.select_dtypes(include=['object']).columns
-
-# Create a column transformer to apply one-hot encoding
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
-    ],
-    remainder='passthrough' # Keep other columns (numerical)
-)
-
-# Create a pipeline with the preprocessor and the model
-model = Pipeline(steps=[('preprocessor', preprocessor),
-                      ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))])
-
-# Convert the target variable to integers (although for regression this might not be strictly necessary depending on the model, it doesn't hurt)
-y_train = y_train.astype(float) # Convert to float for regression
-
-model.fit(X_train, y_train)
+model = treinar_modelo_uci(X_train, y_train)
 
 """
 ## Avaliação do modelo
@@ -398,15 +404,7 @@ with open('uci.pkl', 'wb') as f:
     pickle.dump(model, f)
     f.close()
 
-# PyGWalker
-
-import pygwalker as pyg
-from pygwalker.api.streamlit import StreamlitRenderer
-
-if "df_uci" in st.session_state:
-    df = st.session_state['df_uci']
-    walker = pyg.walk(df)
-else:
-    st.write("Nenhum dado disponível. Por favor, navegue para a página UCI primeiro.")
-
-    
+# Seção de análise interativa (PyGWalker movido para o dashboard principal)
+st.markdown("---")
+st.markdown("### 🔍 Análise Interativa")
+st.info("💡 Para análise interativa dos dados, utilize a aba 'Feature Importance' no dashboard principal, onde você pode ativar o PyGWalker de forma opcional.")
