@@ -5,7 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
-from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
+try:
+    from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
+except ImportError:
+    # Fallback para quando executado diretamente
+    from carregar_dados import carregar_uci_dados, carregar_oulad_dados
 
 def leitura_oulad_data():
     """Função para leitura dos dados OULAD - mantida para compatibilidade"""
@@ -322,7 +326,8 @@ def obter_insights_oulad():
 def carregar_modelo_uci():
     """Carrega o modelo UCI com cache"""
     try:
-        with open('../uci.pkl', 'rb') as f:
+        # Caminho correto para o arquivo pickle
+        with open('uci.pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except Exception as e:
@@ -333,7 +338,8 @@ def carregar_modelo_uci():
 def carregar_modelo_oulad():
     """Carrega o modelo OULAD com cache"""
     try:
-        with open('../oulad.pkl', 'rb') as f:
+        # Caminho correto para o arquivo pickle
+        with open('oulad.pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except Exception as e:
@@ -342,32 +348,88 @@ def carregar_modelo_oulad():
 
 @st.cache_data(ttl=1800)  # Cache por 30 minutos
 def calcular_feature_importance_uci():
-    """Calcula feature importance para UCI com cache"""
+    """Calcula feature importance real para UCI com cache"""
     try:
-        # Dados simulados baseados na análise real
-        features = ['G1', 'G2', 'absences', 'studytime', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'famrel']
-        importance = [0.35, 0.28, 0.15, 0.08, 0.05, 0.04, 0.03, 0.02, 0.01, 0.01]
+        # Carregar o modelo treinado
+        model = carregar_modelo_uci()
+        if model is None:
+            return pd.DataFrame()
         
-        return pd.DataFrame({
-            'feature': features,
-            'importance': importance
+        # Extrair feature importances do modelo
+        if hasattr(model, 'named_steps'):
+            # Pipeline - extrair do regressor
+            rf_model = model.named_steps['regressor']
+            feature_importances = rf_model.feature_importances_
+            
+            # Obter nomes das features após preprocessing
+            preprocessor = model.named_steps['preprocessor']
+            feature_names = []
+            
+            # Features categóricas (após one-hot encoding)
+            categorical_features = preprocessor.transformers_[0][1].get_feature_names_out()
+            feature_names.extend(categorical_features)
+            
+            # Features numéricas
+            numerical_features = preprocessor.transformers_[1][2]  # remainder='passthrough'
+            feature_names.extend(numerical_features)
+            
+        else:
+            # Modelo direto
+            feature_importances = model.feature_importances_
+            feature_names = [f'feature_{i}' for i in range(len(feature_importances))]
+        
+        # Criar DataFrame com as importâncias
+        df_importance = pd.DataFrame({
+            'feature': feature_names,
+            'importance': feature_importances
         }).sort_values('importance', ascending=True)
+        
+        return df_importance
+        
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance UCI: {e}")
         return pd.DataFrame()
 
 @st.cache_data(ttl=1800)  # Cache por 30 minutos
 def calcular_feature_importance_oulad():
-    """Calcula feature importance para OULAD com cache"""
+    """Calcula feature importance real para OULAD com cache"""
     try:
-        # Dados simulados baseados na análise real
-        features = ['clicks', 'activity_type', 'age_band', 'gender', 'region', 'score', 'date_x', 'date_y']
-        importance = [0.25, 0.20, 0.18, 0.15, 0.12, 0.08, 0.02, 0.01]
+        # Carregar o modelo treinado
+        model = carregar_modelo_oulad()
+        if model is None:
+            return pd.DataFrame()
         
-        return pd.DataFrame({
-            'feature': features,
-            'importance': importance
+        # Extrair feature importances do modelo
+        if hasattr(model, 'named_steps'):
+            # Pipeline - extrair do classifier
+            rf_model = model.named_steps['classifier']
+            feature_importances = rf_model.feature_importances_
+            
+            # Obter nomes das features após preprocessing
+            preprocessor = model.named_steps['preprocessor']
+            feature_names = []
+            
+            # Features numéricas
+            numerical_features = preprocessor.transformers_[0][2]  # SimpleImputer
+            feature_names.extend(numerical_features)
+            
+            # Features categóricas (após one-hot encoding)
+            categorical_features = preprocessor.transformers_[1][1].named_steps['onehot'].get_feature_names_out()
+            feature_names.extend(categorical_features)
+            
+        else:
+            # Modelo direto
+            feature_importances = model.feature_importances_
+            feature_names = [f'feature_{i}' for i in range(len(feature_importances))]
+        
+        # Criar DataFrame com as importâncias
+        df_importance = pd.DataFrame({
+            'feature': feature_names,
+            'importance': feature_importances
         }).sort_values('importance', ascending=True)
+        
+        return df_importance
+        
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance OULAD: {e}")
         return pd.DataFrame()
@@ -420,13 +482,18 @@ def criar_secao_pygwalker():
     col1, col2 = st.columns([3, 1])
     
     with col2:
-        usar_pygwalker = st.checkbox(
-            "Ativar PyGWalker", 
+        usar_pygwalker_uci = st.checkbox(
+            "Ativar PyGWalker UCI", 
             value=False,
-            help="Permite análise interativa dos dados"
+            help="Permite análise interativa dos dados UCI"
         )
-    
-    if usar_pygwalker:
+
+        usar_pygwalker_oulad = st.checkbox(
+            "Ativar PyGWalker OULAD", 
+            value=False,
+            help="Permite análise interativa dos dados OULAD"
+        )
+    if usar_pygwalker_uci:
         try:
             import pygwalker as pyg
             from pygwalker.api.streamlit import StreamlitRenderer
@@ -457,3 +524,35 @@ def criar_secao_pygwalker():
             st.error(f"❌ Erro ao carregar PyGWalker: {e}")
     else:
         st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")
+
+    if usar_pygwalker_oulad:
+        try:
+            import pygwalker as pyg
+            from pygwalker.api.streamlit import StreamlitRenderer
+            
+            # Verificar se há dados disponíveis
+            if 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
+                st.info("📊 Carregando PyGWalker com dados OULAD...")
+                df = st.session_state['df_oulad']
+                
+                # Criar renderer do PyGWalker
+                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
+                renderer.render_explore()
+                
+            elif 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
+                st.info("📊 Carregando PyGWalker com dados OULAD...")
+                df = st.session_state['df_oulad']
+                
+                # Criar renderer do PyGWalker
+                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
+                renderer.render_explore()
+                
+            else:
+                st.warning("⚠️ Nenhum dado disponível para análise interativa. Navegue para as páginas de análise primeiro.")
+            
+        except ImportError:
+            st.error("❌ PyGWalker não está instalado. Execute: `pip install pygwalker`")
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar PyGWalker: {e}")
+        else:
+            st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")

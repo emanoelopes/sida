@@ -30,14 +30,14 @@ from src.vizualizacoes import (
 
 # Configuração da página Streamlit
 st.set_page_config(
-    page_title="Dashboard Educacional Consolidado", 
+    page_title="Dashboard Educacional", 
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # Título principal
-st.title("📊 Dashboard Educacional Consolidado")
+st.title("📊 Dashboard Educacional")
 st.markdown("---")
 
 # Criar sidebar
