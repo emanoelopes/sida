@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
+import time
 from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
 
 def leitura_oulad_data():
@@ -12,11 +13,21 @@ def leitura_oulad_data():
     datasets_path = Path(__file__).parent.parents[1] / 'datasets' / 'oulad_data'
     return datasets_path
 
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def carregar_dados_uci_cached():
+    """Carrega dados UCI com cache"""
+    return carregar_uci_dados()
+
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def carregar_dados_oulad_cached():
+    """Carrega dados OULAD com cache"""
+    return carregar_oulad_dados()
+
 def carregar_dados_dashboard():
-    """Carrega os dados processados para o dashboard"""
+    """Carrega os dados processados para o dashboard com cache"""
     try:
-        # Carregar dados UCI
-        df_uci = carregar_uci_dados()
+        # Carregar dados UCI com cache
+        df_uci = carregar_dados_uci_cached()
         st.session_state['df_uci'] = df_uci
     except Exception as e:
         st.warning(f"Erro ao carregar dados UCI: {e}")
@@ -24,8 +35,8 @@ def carregar_dados_dashboard():
         st.session_state['df_uci'] = df_uci
     
     try:
-        # Carregar dados OULAD
-        df_oulad = carregar_oulad_dados()
+        # Carregar dados OULAD com cache
+        df_oulad = carregar_dados_oulad_cached()
         st.session_state['df_oulad'] = df_oulad
     except Exception as e:
         st.warning(f"Erro ao carregar dados OULAD: {e}")
