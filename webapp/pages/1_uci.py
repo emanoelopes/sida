@@ -46,8 +46,8 @@ df = concat()
 
 st.session_state['df_uci'] = df
 # Transformando valores e tipos de dados
-df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'})
-df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'})
+df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'}).astype(str)
+df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'}).astype(str)
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
 df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
 
@@ -367,16 +367,53 @@ from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 
 # Make predictions on the test data
-predictions = model.predict(X_test)
-
-# Evaluate the model using regression metrics
-mae = mean_absolute_error(y_test, predictions)
-rmse = np.sqrt(mean_squared_error(y_test, predictions))
-r2 = r2_score(y_test, predictions)
-
-st.markdown(f"Mean Absolute Error (MAE): {mae:.2f}")
-st.markdown(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
-st.markdown(f"R-squared (R2): {r2:.2f}")
+try:
+    predictions = model.predict(X_test)
+    
+    # Debug: Verificar tipos e formas
+    st.markdown("### Debug do Modelo")
+    st.write(f"**y_test type:** {type(y_test)}, **shape:** {y_test.shape if hasattr(y_test, 'shape') else 'N/A'}")
+    st.write(f"**predictions type:** {type(predictions)}, **shape:** {predictions.shape if hasattr(predictions, 'shape') else 'N/A'}")
+    
+    # Verificar valores NaN e infinitos
+    y_test_nan = pd.isna(y_test).sum() if hasattr(y_test, 'sum') else 0
+    predictions_nan = pd.isna(predictions).sum() if hasattr(predictions, 'sum') else 0
+    st.write(f"**y_test NaN count:** {y_test_nan}")
+    st.write(f"**predictions NaN count:** {predictions_nan}")
+    
+    # Evaluate the model using regression metrics with data cleaning
+    try:
+        # Garantir que os dados são arrays numpy
+        y_test_clean = np.asarray(y_test, dtype=float)
+        predictions_clean = np.asarray(predictions, dtype=float)
+        
+        # Remover valores NaN e infinitos
+        mask = np.isfinite(y_test_clean) & np.isfinite(predictions_clean)
+        y_test_clean = y_test_clean[mask]
+        predictions_clean = predictions_clean[mask]
+        
+        st.write(f"**Dados limpos - y_test shape:** {y_test_clean.shape}, **predictions shape:** {predictions_clean.shape}")
+        
+        # Calcular métricas
+        mae = mean_absolute_error(y_test_clean, predictions_clean)
+        rmse = np.sqrt(mean_squared_error(y_test_clean, predictions_clean))
+        r2 = r2_score(y_test_clean, predictions_clean)
+        
+        st.markdown("### Métricas do Modelo")
+        st.markdown(f"**Mean Absolute Error (MAE):** {mae:.2f}")
+        st.markdown(f"**Root Mean Squared Error (RMSE):** {rmse:.2f}")
+        st.markdown(f"**R-squared (R2):** {r2:.2f}")
+        
+    except Exception as e:
+        st.error(f"Erro ao calcular métricas: {e}")
+        st.markdown("**Dados de debug:**")
+        st.write(f"y_test sample: {y_test.head() if hasattr(y_test, 'head') else y_test}")
+        st.write(f"predictions sample: {predictions[:5] if hasattr(predictions, '__len__') else predictions}")
+        
+except Exception as e:
+    st.error(f"Erro na previsão do modelo: {e}")
+    import traceback
+    st.code(traceback.format_exc())
 
 from sklearn.inspection import permutation_importance
 
