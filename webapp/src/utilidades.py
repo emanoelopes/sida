@@ -190,8 +190,8 @@ def criar_sidebar_dashboard():
         st.markdown("---")
         st.markdown("### ℹ️ Informações")
         st.markdown("**Mestrado em Tecnologia Educacional - UFC**")
-        
-        return None, None  # Retorna None para manter compatibilidade
+    
+    return None, None  # Retorna None para manter compatibilidade
 
 def exibir_cartoes_informativos():
     """Exibe cartões informativos com métricas principais"""
@@ -391,15 +391,25 @@ def carregar_modelo_oulad():
         st.warning(f"Erro ao carregar modelo OULAD: {e}")
         return None
 
-@st.cache_data(ttl=1800)  # Cache por 30 minutos
+@st.cache_data(ttl=3600)  # Cache por 1 hora (UCI é menor)
 def calcular_feature_importance_uci():
-    """Calcula feature importance real para UCI usando permutation_importance"""
+    """Calcula feature importance real para UCI com otimizações"""
     try:
         from sklearn.inspection import permutation_importance
         from sklearn.model_selection import train_test_split
         
+        # Indicador de progresso
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.text("🔄 Carregando dados UCI...")
+        progress_bar.progress(20)
+        
         # Carregar dados UCI
         df_uci = carregar_uci_dados()
+        
+        status_text.text("🔄 Preparando dados...")
+        progress_bar.progress(40)
         
         # Preparar dados como nas páginas individuais
         Y = df_uci['G3']
@@ -408,37 +418,74 @@ def calcular_feature_importance_uci():
         # Dividir dados
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
         
+        status_text.text("🔄 Carregando modelo...")
+        progress_bar.progress(60)
+        
         # Carregar modelo treinado
         model = carregar_modelo_uci()
         if model is None:
+            progress_bar.empty()
+            status_text.empty()
             return pd.DataFrame()
         
-        # Calcular permutation importance
-        result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
+        status_text.text("🔄 Calculando feature importance...")
+        progress_bar.progress(80)
+        
+        # OTIMIZAÇÃO: Usar todos os cores disponíveis
+        result = permutation_importance(
+            model, X_test, y_test, 
+            n_repeats=10,  # Manter 10 para UCI (é pequeno)
+            random_state=42, 
+            n_jobs=-1  # Usar todos os cores disponíveis
+        )
         sorted_idx = result.importances_mean.argsort()
+        
+        status_text.text("✅ Finalizando...")
+        progress_bar.progress(95)
         
         # Criar DataFrame com resultados reais
         features = X_test.columns[sorted_idx]
         importance = result.importances_mean[sorted_idx]
         
-        return pd.DataFrame({
+        df_result = pd.DataFrame({
             'feature': features,
             'importance': importance
         }).sort_values('importance', ascending=True)
+        
+        # Limpar indicadores
+        progress_bar.empty()
+        status_text.empty()
+        
+        return df_result
         
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance UCI: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=1800)  # Cache por 30 minutos
+@st.cache_data(ttl=7200)  # Cache por 2 horas (OULAD é pesado)
 def calcular_feature_importance_oulad():
-    """Calcula feature importance real para OULAD usando permutation_importance"""
+    """Calcula feature importance real para OULAD com otimizações"""
     try:
         from sklearn.inspection import permutation_importance
         from sklearn.model_selection import train_test_split
         
+        # Indicador de progresso
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.text("🔄 Carregando dados OULAD...")
+        progress_bar.progress(10)
+        
         # Carregar dados OULAD
         df_oulad = carregar_oulad_dados()
+        
+        # AMOSTRAGEM: Usar apenas 50k registros para OULAD (muito mais rápido)
+        if len(df_oulad) > 50000:
+            df_oulad = df_oulad.sample(n=50000, random_state=42)
+            st.info("📊 Usando amostra de 50k registros para análise mais rápida")
+        
+        status_text.text("🔄 Preparando dados...")
+        progress_bar.progress(30)
         
         # Preparar dados como nas páginas individuais
         Y = df_oulad['final_result']
@@ -447,31 +494,56 @@ def calcular_feature_importance_oulad():
         # Remover colunas irrelevantes
         X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1, errors='ignore')
         
+        status_text.text("🔄 Dividindo dados...")
+        progress_bar.progress(50)
+        
         # Dividir dados
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
         
         # Carregar modelo treinado
         model = carregar_modelo_oulad()
         if model is None:
+            progress_bar.empty()
+            status_text.empty()
             return pd.DataFrame()
+        
+        status_text.text("🔄 Limpando dados de teste...")
+        progress_bar.progress(70)
         
         # Limpar dados de teste
         nan_rows_test = y_test.isnull()
         X_test_cleaned = X_test[~nan_rows_test].copy()
         y_test_cleaned = y_test[~nan_rows_test].copy()
         
-        # Calcular permutation importance
-        result = permutation_importance(model, X_test_cleaned, y_test_cleaned, n_repeats=10, random_state=42, n_jobs=2)
+        status_text.text("🔄 Calculando feature importance...")
+        progress_bar.progress(85)
+        
+        # OTIMIZAÇÃO: Menos repetições e mais jobs
+        result = permutation_importance(
+            model, X_test_cleaned, y_test_cleaned, 
+            n_repeats=5,  # Reduzido de 10 para 5
+            random_state=42, 
+            n_jobs=-1  # Usar todos os cores disponíveis
+        )
         sorted_idx = result.importances_mean.argsort()
+        
+        status_text.text("✅ Finalizando...")
+        progress_bar.progress(95)
         
         # Criar DataFrame com resultados reais
         features = X_test_cleaned.columns[sorted_idx]
         importance = result.importances_mean[sorted_idx]
         
-        return pd.DataFrame({
+        df_result = pd.DataFrame({
             'feature': features,
             'importance': importance
         }).sort_values('importance', ascending=True)
+        
+        # Limpar indicadores
+        progress_bar.empty()
+        status_text.empty()
+        
+        return df_result
         
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance OULAD: {e}")
