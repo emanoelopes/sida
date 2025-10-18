@@ -333,8 +333,28 @@ def obter_insights_oulad():
 def carregar_modelo_uci():
     """Carrega o modelo UCI com cache"""
     try:
-        with open('../uci.pkl', 'rb') as f:
-            model = pickle.load(f)
+        # Tentar diferentes caminhos para o arquivo pickle
+        possible_paths = [
+            '../uci.pkl',
+            '../../uci.pkl',
+            Path(__file__).parent.parents[1] / "uci.pkl",
+            'uci.pkl'
+        ]
+        
+        model = None
+        for path in possible_paths:
+            p = Path(path)
+            if p.is_file():
+                try:
+                    with p.open("rb") as f:
+                        model = pickle.load(f)
+                    break
+                except Exception as e:
+                    continue
+        
+        if model is None:
+            raise FileNotFoundError(f"Arquivo uci.pkl não encontrado em nenhum dos caminhos: {possible_paths}")
+        
         return model
     except Exception as e:
         st.warning(f"Erro ao carregar modelo UCI: {e}")
@@ -344,8 +364,28 @@ def carregar_modelo_uci():
 def carregar_modelo_oulad():
     """Carrega o modelo OULAD com cache"""
     try:
-        with open('../oulad.pkl', 'rb') as f:
-            model = pickle.load(f)
+        # Tentar diferentes caminhos para o arquivo pickle
+        possible_paths = [
+            '../oulad.pkl',
+            '../../oulad.pkl',
+            Path(__file__).parent.parents[1] / "oulad.pkl",
+            'oulad.pkl'
+        ]
+        
+        model = None
+        for path in possible_paths:
+            p = Path(path)
+            if p.is_file():
+                try:
+                    with p.open("rb") as f:
+                        model = pickle.load(f)
+                    break
+                except Exception as e:
+                    continue
+        
+        if model is None:
+            raise FileNotFoundError(f"Arquivo oulad.pkl não encontrado em nenhum dos caminhos: {possible_paths}")
+        
         return model
     except Exception as e:
         st.warning(f"Erro ao carregar modelo OULAD: {e}")
@@ -353,32 +393,86 @@ def carregar_modelo_oulad():
 
 @st.cache_data(ttl=1800)  # Cache por 30 minutos
 def calcular_feature_importance_uci():
-    """Calcula feature importance para UCI com cache"""
+    """Calcula feature importance real para UCI usando permutation_importance"""
     try:
-        # Dados simulados baseados na análise real
-        features = ['G1', 'G2', 'absences', 'studytime', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'famrel']
-        importance = [0.35, 0.28, 0.15, 0.08, 0.05, 0.04, 0.03, 0.02, 0.01, 0.01]
+        from sklearn.inspection import permutation_importance
+        from sklearn.model_selection import train_test_split
+        
+        # Carregar dados UCI
+        df_uci = carregar_uci_dados()
+        
+        # Preparar dados como nas páginas individuais
+        Y = df_uci['G3']
+        X = df_uci.drop('G3', axis=1)
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+        
+        # Carregar modelo treinado
+        model = carregar_modelo_uci()
+        if model is None:
+            return pd.DataFrame()
+        
+        # Calcular permutation importance
+        result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
+        sorted_idx = result.importances_mean.argsort()
+        
+        # Criar DataFrame com resultados reais
+        features = X_test.columns[sorted_idx]
+        importance = result.importances_mean[sorted_idx]
         
         return pd.DataFrame({
             'feature': features,
             'importance': importance
         }).sort_values('importance', ascending=True)
+        
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance UCI: {e}")
         return pd.DataFrame()
 
 @st.cache_data(ttl=1800)  # Cache por 30 minutos
 def calcular_feature_importance_oulad():
-    """Calcula feature importance para OULAD com cache"""
+    """Calcula feature importance real para OULAD usando permutation_importance"""
     try:
-        # Dados simulados baseados na análise real
-        features = ['clicks', 'activity_type', 'age_band', 'gender', 'region', 'score', 'date_x', 'date_y']
-        importance = [0.25, 0.20, 0.18, 0.15, 0.12, 0.08, 0.02, 0.01]
+        from sklearn.inspection import permutation_importance
+        from sklearn.model_selection import train_test_split
+        
+        # Carregar dados OULAD
+        df_oulad = carregar_oulad_dados()
+        
+        # Preparar dados como nas páginas individuais
+        Y = df_oulad['final_result']
+        X = df_oulad.loc[:, df_oulad.columns != 'final_result']
+        
+        # Remover colunas irrelevantes
+        X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1, errors='ignore')
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+        
+        # Carregar modelo treinado
+        model = carregar_modelo_oulad()
+        if model is None:
+            return pd.DataFrame()
+        
+        # Limpar dados de teste
+        nan_rows_test = y_test.isnull()
+        X_test_cleaned = X_test[~nan_rows_test].copy()
+        y_test_cleaned = y_test[~nan_rows_test].copy()
+        
+        # Calcular permutation importance
+        result = permutation_importance(model, X_test_cleaned, y_test_cleaned, n_repeats=10, random_state=42, n_jobs=2)
+        sorted_idx = result.importances_mean.argsort()
+        
+        # Criar DataFrame com resultados reais
+        features = X_test_cleaned.columns[sorted_idx]
+        importance = result.importances_mean[sorted_idx]
         
         return pd.DataFrame({
             'feature': features,
             'importance': importance
         }).sort_values('importance', ascending=True)
+        
     except Exception as e:
         st.warning(f"Erro ao calcular feature importance OULAD: {e}")
         return pd.DataFrame()
@@ -424,11 +518,18 @@ def criar_grafico_feature_importance_oulad():
     return fig
 
 def criar_secao_pygwalker():
-    """Cria seção opcional para PyGWalker"""
+    """Cria seção opcional para PyGWalker com seleção de dataset"""
     st.markdown("---")
     st.markdown("### 🔍 Análise Interativa com PyGWalker")
     
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        dataset_selecionado = st.selectbox(
+            "Selecione o dataset para análise:",
+            ["UCI", "OULAD"],
+            help="Escolha qual dataset analisar interativamente"
+        )
     
     with col2:
         usar_pygwalker = st.checkbox(
@@ -442,29 +543,33 @@ def criar_secao_pygwalker():
             import pygwalker as pyg
             from pygwalker.api.streamlit import StreamlitRenderer
             
-            # Verificar se há dados disponíveis
-            if 'df_uci' in st.session_state and not st.session_state['df_uci'].empty:
-                st.info("📊 Carregando PyGWalker com dados UCI...")
-                df = st.session_state['df_uci']
-                
+            # Carregar dados baseado na seleção
+            if dataset_selecionado == "UCI":
+                if 'df_uci' in st.session_state and not st.session_state['df_uci'].empty:
+                    st.info("📊 Carregando PyGWalker com dados UCI...")
+                    df = st.session_state['df_uci']
+                else:
+                    st.info("📊 Carregando dados UCI do arquivo...")
+                    df = carregar_uci_dados()
+            else:  # OULAD
+                if 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
+                    st.info("📊 Carregando PyGWalker com dados OULAD...")
+                    df = st.session_state['df_oulad']
+                else:
+                    st.info("📊 Carregando dados OULAD do arquivo...")
+                    df = carregar_oulad_dados()
+            
+            # Verificar se os dados foram carregados
+            if df is not None and not df.empty:
                 # Criar renderer do PyGWalker
                 renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
                 renderer.render_explore()
-                
-            elif 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
-                st.info("📊 Carregando PyGWalker com dados OULAD...")
-                df = st.session_state['df_oulad']
-                
-                # Criar renderer do PyGWalker
-                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
-                renderer.render_explore()
-                
             else:
-                st.warning("⚠️ Nenhum dado disponível para análise interativa. Navegue para as páginas de análise primeiro.")
+                st.warning(f"⚠️ Nenhum dado disponível para {dataset_selecionado}. Verifique se os arquivos de dados existem.")
                 
         except ImportError:
             st.error("❌ PyGWalker não está instalado. Execute: `pip install pygwalker`")
         except Exception as e:
             st.error(f"❌ Erro ao carregar PyGWalker: {e}")
     else:
-        st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")
+        st.info(f"💡 Marque a opção acima para ativar a análise interativa com PyGWalker para o dataset {dataset_selecionado}")
