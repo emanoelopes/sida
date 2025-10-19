@@ -201,10 +201,18 @@ O número de tentativas anteriores é zero para a vasta maioria dos estudantes (
 
 st.write('## Distribuição das notas finais dos estudantes')
 plt.figure(figsize=(10, 6))
-sns.histplot(merged_df['score'], bins=30, kde=True)
-plt.title('Distribuição de Notas Finais dos Estudantes')
-plt.xlabel('Nota Final')
-plt.ylabel('Frequência')
+# Calcular nota média por estudante único
+if 'score' in merged_df.columns and 'id_student' in merged_df.columns:
+    notas_por_estudante = merged_df.groupby('id_student')['score'].mean()
+    sns.histplot(notas_por_estudante, bins=30, kde=True)
+    plt.title('Distribuição de Notas Finais dos Estudantes (Únicos)')
+    plt.xlabel('Nota Final Média')
+    plt.ylabel('Número de Estudantes Únicos')
+else:
+    sns.histplot(merged_df['score'], bins=30, kde=True)
+    plt.title('Distribuição de Notas Finais dos Estudantes')
+    plt.xlabel('Nota Final')
+    plt.ylabel('Frequência')
 st.pyplot(plt)
 plt.clf()
 
@@ -214,10 +222,12 @@ Com base no histograma, a maioria dos estudantes obteve notas finais elevadas, c
 
 st.write('## Distribuição de Atividades por Tipo')
 plt.figure(figsize=(10, 6))
-sns.countplot(data=merged_df, x='activity_type', order=merged_df['activity_type'].value_counts().index)
+# Contar atividades únicas por tipo (não estudantes únicos, pois é sobre atividades)
+atividade_counts = merged_df['activity_type'].value_counts()
+sns.barplot(x=atividade_counts.index, y=atividade_counts.values)
 plt.title('Distribuição de Atividades por Tipo')
 plt.xlabel('Tipo de Atividade')
-plt.ylabel('Contagem')
+plt.ylabel('Número de Atividades')
 plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
@@ -237,10 +247,13 @@ Por meio da análise dos dados categóricos, os estudantes são, na sua maioria,
 
 st.write('## Distribuição de Estudantes por Idade')
 plt.figure(figsize=(10, 6))
-sns.histplot(merged_df['age_band'], bins=30)
+# Contar estudantes únicos por faixa etária
+idade_counts = merged_df.groupby('age_band')['id_student'].nunique()
+sns.barplot(x=idade_counts.index, y=idade_counts.values)
 plt.title('Distribuição de Estudantes por Idade')
-plt.xlabel('Idade')
-plt.ylabel('Frequência')
+plt.xlabel('Faixa Etária')
+plt.ylabel('Número de Estudantes Únicos')
+plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
 
@@ -251,10 +264,12 @@ Este histograma revela que a maioria dos estudantes se encontra na faixa etária
 
 st.write('## Distribuição de Estudantes por Gênero')
 plt.figure(figsize=(6, 6))
-sns.countplot(data=merged_df['gender'])
+# Contar estudantes únicos por gênero
+genero_counts = merged_df.groupby('gender')['id_student'].nunique()
+sns.barplot(x=genero_counts.index, y=genero_counts.values)
 plt.title('Distribuição de Estudantes por Gênero')
 plt.xlabel('Gênero')
-plt.ylabel('Contagem')
+plt.ylabel('Número de Estudantes Únicos')
 st.pyplot(plt)
 plt.clf()
 
@@ -264,10 +279,12 @@ A diferença na quantidade entre os gêneros masculino e feminino é algo em tor
 
 st.write('## Distribuição de Estudantes por Região')
 plt.figure(figsize=(10, 6))
-sns.countplot(data=merged_df, x='region', order=merged_df['region'].value_counts().index)
+# Contar estudantes únicos por região
+regiao_counts = merged_df.groupby('region')['id_student'].nunique().sort_values(ascending=False)
+sns.barplot(x=regiao_counts.index, y=regiao_counts.values)
 plt.title('Distribuição de Estudantes por Região')
 plt.xlabel('Região')
-plt.ylabel('Contagem')
+plt.ylabel('Número de Estudantes Únicos')
 plt.xticks(rotation=45)
 st.pyplot(plt)
 plt.clf()
@@ -278,10 +295,12 @@ As regiões "South West Region" e "South Region" detêm a maior concentração d
 
 st.write('## Distribuição dos Estudantes por Resultado Final')
 plt.figure(figsize=(6, 6))
-sns.countplot(data=merged_df['final_result'], order=merged_df['final_result'].value_counts().index)
+# Contar estudantes únicos por resultado final
+resultado_counts = merged_df.groupby('final_result')['id_student'].nunique().sort_values(ascending=False)
+sns.barplot(x=resultado_counts.index, y=resultado_counts.values)
 plt.title('Distribuição dos Estudantes por Resultado Final')
 plt.xlabel('Resultado Final')
-plt.ylabel('Contagem')
+plt.ylabel('Número de Estudantes Únicos')
 st.pyplot(plt)
 plt.clf()
 

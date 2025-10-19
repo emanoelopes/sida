@@ -143,7 +143,12 @@ def obter_metricas_principais_oulad():
             }
         
         # Calcular métricas reais
-        total_estudantes = len(df_oulad)
+        # Usar nunique() para contar estudantes únicos, não registros
+        if 'id_student' in df_oulad.columns:
+            total_estudantes = df_oulad['id_student'].nunique()
+        else:
+            total_estudantes = len(df_oulad)  # Fallback se não houver coluna id_student
+        
         media_cliques = df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns else 0
         
         # Taxa de aprovação
@@ -159,15 +164,19 @@ def obter_metricas_principais_oulad():
             estudantes_reprovados = 0
         
         # Distribuição de gênero
-        if 'gender' in df_oulad.columns:
-            dist_genero = df_oulad['gender'].value_counts(normalize=True) * 100
-            distribuicao_genero = {k: round(v, 1) for k, v in dist_genero.to_dict().items()}
+        if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            dist_genero = df_oulad.groupby('gender')['id_student'].nunique()
+            total_estudantes = df_oulad['id_student'].nunique()
+            dist_genero_pct = (dist_genero / total_estudantes * 100)
+            distribuicao_genero = {k: round(v, 1) for k, v in dist_genero_pct.to_dict().items()}
         else:
             distribuicao_genero = {}
         
         # Faixa etária principal
-        if 'age_band' in df_oulad.columns:
-            faixa_etaria_principal = df_oulad['age_band'].mode().iloc[0] if not df_oulad['age_band'].mode().empty else 'N/A'
+        if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            # Encontrar a faixa etária com mais estudantes únicos
+            idade_counts = df_oulad.groupby('age_band')['id_student'].nunique()
+            faixa_etaria_principal = idade_counts.idxmax() if not idade_counts.empty else 'N/A'
         else:
             faixa_etaria_principal = 'N/A'
         
@@ -178,8 +187,10 @@ def obter_metricas_principais_oulad():
             atividade_mais_comum = 'N/A'
         
         # Região principal
-        if 'region' in df_oulad.columns:
-            regiao_principal = df_oulad['region'].mode().iloc[0] if not df_oulad['region'].mode().empty else 'N/A'
+        if 'region' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            # Encontrar a região com mais estudantes únicos
+            regiao_counts = df_oulad.groupby('region')['id_student'].nunique()
+            regiao_principal = regiao_counts.idxmax() if not regiao_counts.empty else 'N/A'
         else:
             regiao_principal = 'N/A'
         
@@ -232,11 +243,11 @@ def calcular_metricas_oulad(df_oulad):
         return {}
     
     metricas = {
-        'total_estudantes': len(df_oulad),
+        'total_estudantes': df_oulad['id_student'].nunique() if 'id_student' in df_oulad.columns else len(df_oulad),
         'media_cliques': df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns else 0,
         'taxa_aprovacao': (df_oulad['final_result'] == 'Pass').mean() * 100 if 'final_result' in df_oulad.columns else 0,
-        'distribuicao_genero': df_oulad['gender'].value_counts().to_dict() if 'gender' in df_oulad.columns else {},
-        'distribuicao_idade': df_oulad['age_band'].value_counts().to_dict() if 'age_band' in df_oulad.columns else {},
+        'distribuicao_genero': df_oulad.groupby('gender')['id_student'].nunique().to_dict() if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
+        'distribuicao_idade': df_oulad.groupby('age_band')['id_student'].nunique().to_dict() if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
         'atividade_mais_comum': df_oulad['activity_type'].mode().iloc[0] if 'activity_type' in df_oulad.columns else 'N/A',
         'regiao_mais_comum': df_oulad['region'].mode().iloc[0] if 'region' in df_oulad.columns else 'N/A'
     }
