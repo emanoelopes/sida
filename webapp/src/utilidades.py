@@ -46,34 +46,169 @@ def carregar_dados_dashboard():
     return df_uci, df_oulad
 
 def obter_metricas_principais_uci():
-    """Retorna métricas principais do dataset UCI baseadas nas análises"""
-    return {
-        'total_estudantes': 1044,
-        'media_nota_final': 10.42,
-        'taxa_aprovacao': 67.3,
-        'media_faltas': 5.7,
-        'distribuicao_genero': {'F': 58.2, 'M': 41.8},
-        'media_tempo_estudo': 2.0,
-        'correlacao_g1_g3': 0.81,
-        'correlacao_g2_g3': 0.91,
-        'estudantes_alcool_baixo': 45.2,
-        'estudantes_alcool_alto': 12.8
-    }
+    """Retorna métricas principais do dataset UCI calculadas dinamicamente"""
+    try:
+        df_uci = carregar_dados_uci_cached()
+        if df_uci.empty:
+            return {
+                'total_estudantes': 0,
+                'media_nota_final': 0,
+                'taxa_aprovacao': 0,
+                'media_faltas': 0,
+                'distribuicao_genero': {},
+                'media_tempo_estudo': 0,
+                'correlacao_g1_g3': 0,
+                'correlacao_g2_g3': 0,
+                'estudantes_alcool_baixo': 0,
+                'estudantes_alcool_alto': 0
+            }
+        
+        # Calcular métricas reais
+        total_estudantes = len(df_uci)
+        media_nota_final = df_uci['G3'].mean() if 'G3' in df_uci.columns else 0
+        taxa_aprovacao = (df_uci['G3'] >= 10).mean() * 100 if 'G3' in df_uci.columns else 0
+        media_faltas = df_uci['absences'].mean() if 'absences' in df_uci.columns else 0
+        
+        # Distribuição de gênero
+        if 'sex' in df_uci.columns:
+            dist_genero = df_uci['sex'].value_counts(normalize=True) * 100
+            distribuicao_genero = {k: round(v, 1) for k, v in dist_genero.to_dict().items()}
+        else:
+            distribuicao_genero = {}
+        
+        # Tempo de estudo médio - converter strings para números
+        if 'studytime' in df_uci.columns:
+            # Mapear strings para números para calcular média
+            studytime_map = {'<2h': 1, '2-5h': 2, '5-10h': 3, '>10h': 4}
+            studytime_numeric = df_uci['studytime'].map(studytime_map)
+            media_tempo_estudo = studytime_numeric.mean()
+        else:
+            media_tempo_estudo = 0
+        
+        # Correlações
+        correlacao_g1_g3 = df_uci[['G1', 'G3']].corr().iloc[0, 1] if all(col in df_uci.columns for col in ['G1', 'G3']) else 0
+        correlacao_g2_g3 = df_uci[['G2', 'G3']].corr().iloc[0, 1] if all(col in df_uci.columns for col in ['G2', 'G3']) else 0
+        
+        # Consumo de álcool
+        if 'Dalc' in df_uci.columns:
+            alcool_baixo = (df_uci['Dalc'] <= 2).mean() * 100
+            alcool_alto = (df_uci['Dalc'] >= 4).mean() * 100
+        else:
+            alcool_baixo = 0
+            alcool_alto = 0
+        
+        return {
+            'total_estudantes': total_estudantes,
+            'media_nota_final': round(media_nota_final, 2),
+            'taxa_aprovacao': round(taxa_aprovacao, 1),
+            'media_faltas': round(media_faltas, 1),
+            'distribuicao_genero': distribuicao_genero,
+            'media_tempo_estudo': round(media_tempo_estudo, 1),
+            'correlacao_g1_g3': round(correlacao_g1_g3, 2),
+            'correlacao_g2_g3': round(correlacao_g2_g3, 2),
+            'estudantes_alcool_baixo': round(alcool_baixo, 1),
+            'estudantes_alcool_alto': round(alcool_alto, 1)
+        }
+    except Exception as e:
+        st.warning(f"Erro ao calcular métricas UCI: {e}")
+        return {
+            'total_estudantes': 0,
+            'media_nota_final': 0,
+            'taxa_aprovacao': 0,
+            'media_faltas': 0,
+            'distribuicao_genero': {},
+            'media_tempo_estudo': 0,
+            'correlacao_g1_g3': 0,
+            'correlacao_g2_g3': 0,
+            'estudantes_alcool_baixo': 0,
+            'estudantes_alcool_alto': 0
+        }
 
 def obter_metricas_principais_oulad():
-    """Retorna métricas principais do dataset OULAD baseadas nas análises"""
-    return {
-        'total_estudantes': 28000,
-        'taxa_aprovacao': 78.5,
-        'media_cliques': 4.65,
-        'distribuicao_genero': {'M': 56.2, 'F': 43.8},
-        'faixa_etaria_principal': '35-55 anos',
-        'atividade_mais_comum': 'outcontent',
-        'regiao_principal': 'South West Region',
-        'estudantes_aprovados': 78.5,
-        'estudantes_distincao': 8.2,
-        'estudantes_reprovados': 13.3
-    }
+    """Retorna métricas principais do dataset OULAD calculadas dinamicamente"""
+    try:
+        df_oulad = carregar_dados_oulad_cached()
+        if df_oulad.empty:
+            return {
+                'total_estudantes': 0,
+                'taxa_aprovacao': 0,
+                'media_cliques': 0,
+                'distribuicao_genero': {},
+                'faixa_etaria_principal': 'N/A',
+                'atividade_mais_comum': 'N/A',
+                'regiao_principal': 'N/A',
+                'estudantes_aprovados': 0,
+                'estudantes_distincao': 0,
+                'estudantes_reprovados': 0
+            }
+        
+        # Calcular métricas reais
+        total_estudantes = len(df_oulad)
+        media_cliques = df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns else 0
+        
+        # Taxa de aprovação
+        if 'final_result' in df_oulad.columns:
+            taxa_aprovacao = (df_oulad['final_result'] == 'Pass').mean() * 100
+            estudantes_aprovados = taxa_aprovacao
+            estudantes_distincao = (df_oulad['final_result'] == 'Distinction').mean() * 100
+            estudantes_reprovados = (df_oulad['final_result'] == 'Fail').mean() * 100
+        else:
+            taxa_aprovacao = 0
+            estudantes_aprovados = 0
+            estudantes_distincao = 0
+            estudantes_reprovados = 0
+        
+        # Distribuição de gênero
+        if 'gender' in df_oulad.columns:
+            dist_genero = df_oulad['gender'].value_counts(normalize=True) * 100
+            distribuicao_genero = {k: round(v, 1) for k, v in dist_genero.to_dict().items()}
+        else:
+            distribuicao_genero = {}
+        
+        # Faixa etária principal
+        if 'age_band' in df_oulad.columns:
+            faixa_etaria_principal = df_oulad['age_band'].mode().iloc[0] if not df_oulad['age_band'].mode().empty else 'N/A'
+        else:
+            faixa_etaria_principal = 'N/A'
+        
+        # Atividade mais comum
+        if 'activity_type' in df_oulad.columns:
+            atividade_mais_comum = df_oulad['activity_type'].mode().iloc[0] if not df_oulad['activity_type'].mode().empty else 'N/A'
+        else:
+            atividade_mais_comum = 'N/A'
+        
+        # Região principal
+        if 'region' in df_oulad.columns:
+            regiao_principal = df_oulad['region'].mode().iloc[0] if not df_oulad['region'].mode().empty else 'N/A'
+        else:
+            regiao_principal = 'N/A'
+        
+        return {
+            'total_estudantes': total_estudantes,
+            'taxa_aprovacao': round(taxa_aprovacao, 1),
+            'media_cliques': round(media_cliques, 2),
+            'distribuicao_genero': distribuicao_genero,
+            'faixa_etaria_principal': faixa_etaria_principal,
+            'atividade_mais_comum': atividade_mais_comum,
+            'regiao_principal': regiao_principal,
+            'estudantes_aprovados': round(estudantes_aprovados, 1),
+            'estudantes_distincao': round(estudantes_distincao, 1),
+            'estudantes_reprovados': round(estudantes_reprovados, 1)
+        }
+    except Exception as e:
+        st.warning(f"Erro ao calcular métricas OULAD: {e}")
+        return {
+            'total_estudantes': 0,
+            'taxa_aprovacao': 0,
+            'media_cliques': 0,
+            'distribuicao_genero': {},
+            'faixa_etaria_principal': 'N/A',
+            'atividade_mais_comum': 'N/A',
+            'regiao_principal': 'N/A',
+            'estudantes_aprovados': 0,
+            'estudantes_distincao': 0,
+            'estudantes_reprovados': 0
+        }
 
 def calcular_metricas_uci(df_uci):
     """Calcula métricas principais para o dataset UCI"""
@@ -85,7 +220,7 @@ def calcular_metricas_uci(df_uci):
         'media_nota_final': df_uci['G3'].mean() if 'G3' in df_uci.columns else 0,
         'taxa_aprovacao': (df_uci['G3'] >= 10).mean() * 100 if 'G3' in df_uci.columns else 0,
         'media_faltas': df_uci['absences'].mean() if 'absences' in df_uci.columns else 0,
-        'media_tempo_estudo': df_uci['studytime'].mean() if 'studytime' in df_uci.columns else 0,
+        'media_tempo_estudo': df_uci['studytime'].map({'<2h': 1, '2-5h': 2, '5-10h': 3, '>10h': 4}).mean() if 'studytime' in df_uci.columns else 0,
         'distribuicao_genero': df_uci['sex'].value_counts().to_dict() if 'sex' in df_uci.columns else {},
         'correlacao_notas': df_uci[['G1', 'G2', 'G3']].corr().to_dict() if all(col in df_uci.columns for col in ['G1', 'G2', 'G3']) else {}
     }
@@ -131,19 +266,23 @@ def criar_sidebar_dashboard():
     with st.sidebar:
         st.markdown("### 📊 Dashboard Educacional")
         
+        # Carregar métricas dinâmicas
+        metricas_uci = obter_metricas_principais_uci()
+        metricas_oulad = obter_metricas_principais_oulad()
+        
         st.markdown("### 📚 Sobre os Datasets")
-        st.markdown("""
+        st.markdown(f"""
         **📚 UCI Dataset:**
         - Escolas públicas portuguesas
-        - 1,044 estudantes
+        - {metricas_uci['total_estudantes']:,} estudantes
         - Dados demográficos e acadêmicos
         - Análise de fatores de sucesso
         """)
         
-        st.markdown("""
+        st.markdown(f"""
         **🌐 OULAD Dataset:**
         - Plataforma de aprendizado online
-        - 28,000 estudantes
+        - {metricas_oulad['total_estudantes']:,} estudantes
         - Dados de engajamento digital
         - Análise de atividades online
         """)
@@ -154,38 +293,62 @@ def criar_sidebar_dashboard():
         # Métricas UCI
         st.metric(
             "🎓 UCI - Aprovação",
-            "67.3%",
+            f"{metricas_uci['taxa_aprovacao']:.1f}%",
             help="Taxa de aprovação nas escolas públicas"
         )
         
         st.metric(
             "📊 UCI - Média Notas",
-            "10.4",
+            f"{metricas_uci['media_nota_final']:.1f}",
             help="Média das notas finais"
         )
         
         # Métricas OULAD
         st.metric(
             "🌐 OULAD - Aprovação",
-            "78.5%",
+            f"{metricas_oulad['taxa_aprovacao']:.1f}%",
             help="Taxa de aprovação na plataforma online"
         )
         
         st.metric(
             "🖱️ OULAD - Engajamento",
-            "4.65",
+            f"{metricas_oulad['media_cliques']:.1f}",
             help="Média de cliques por estudante"
         )
         
         st.markdown("---")
         st.markdown("### 💡 Principais Insights")
-        st.markdown("""
-        - **Correlação forte** entre notas bimestrais e finais
-        - **Gênero influencia** desempenho acadêmico
-        - **Faltas impactam** negativamente o desempenho
-        - **Tempo de estudo** ideal: 5-10h/semana
-        - **Atividades online** mais efetivas: outcontent, forumng
-        """)
+        
+        # Insights dinâmicos baseados nos dados reais
+        insights_text = []
+        
+        if metricas_uci['correlacao_g1_g3'] > 0.7:
+            insights_text.append(f"**Correlação forte** entre notas bimestrais e finais ({metricas_uci['correlacao_g1_g3']:.2f})")
+        
+        if metricas_uci['distribuicao_genero']:
+            genero_maioria = max(metricas_uci['distribuicao_genero'], key=metricas_uci['distribuicao_genero'].get)
+            insights_text.append(f"**Gênero predominante**: {genero_maioria} ({metricas_uci['distribuicao_genero'][genero_maioria]:.1f}%)")
+        
+        if metricas_uci['media_faltas'] > 0:
+            insights_text.append(f"**Média de faltas**: {metricas_uci['media_faltas']:.1f} por estudante")
+        
+        if metricas_uci['media_tempo_estudo'] > 0:
+            insights_text.append(f"**Tempo de estudo médio**: {metricas_uci['media_tempo_estudo']:.1f}h/semana")
+        
+        if metricas_oulad['atividade_mais_comum'] != 'N/A':
+            insights_text.append(f"**Atividade mais comum**: {metricas_oulad['atividade_mais_comum']}")
+        
+        if insights_text:
+            for insight in insights_text:
+                st.markdown(f"- {insight}")
+        else:
+            st.markdown("""
+            - **Correlação forte** entre notas bimestrais e finais
+            - **Gênero influencia** desempenho acadêmico
+            - **Faltas impactam** negativamente o desempenho
+            - **Tempo de estudo** ideal: 5-10h/semana
+            - **Atividades online** mais efetivas: outcontent, forumng
+            """)
         
         st.markdown("---")
         st.markdown("### ℹ️ Informações")
@@ -302,30 +465,102 @@ def exibir_cartoes_detalhados():
         )
 
 def obter_insights_uci():
-    """Retorna insights principais do dataset UCI"""
+    """Retorna insights principais do dataset UCI baseados em dados reais"""
+    metricas = obter_metricas_principais_uci()
+    
+    insights = []
+    
+    # Correlação forte
+    if metricas['correlacao_g1_g3'] > 0.7 and metricas['correlacao_g2_g3'] > 0.7:
+        insights.append(f"🎯 **Correlação Forte**: Notas do 1º e 2º bimestre têm correlação de {metricas['correlacao_g1_g3']:.2f} e {metricas['correlacao_g2_g3']:.2f} com a nota final")
+    
+    # Gênero
+    if metricas['distribuicao_genero']:
+        genero_maioria = max(metricas['distribuicao_genero'], key=metricas['distribuicao_genero'].get)
+        genero_menor = min(metricas['distribuicao_genero'], key=metricas['distribuicao_genero'].get)
+        insights.append(f"👥 **Gênero**: Estudantes do sexo {genero_maioria} representam {metricas['distribuicao_genero'][genero_maioria]:.1f}% vs {genero_menor} com {metricas['distribuicao_genero'][genero_menor]:.1f}%")
+    
+    # Consumo de álcool
+    if metricas['estudantes_alcool_baixo'] > 0:
+        insights.append(f"🍷 **Consumo de Álcool**: {metricas['estudantes_alcool_baixo']:.1f}% dos estudantes têm baixo consumo, com melhor desempenho acadêmico")
+    
+    # Tempo de estudo
+    if metricas['media_tempo_estudo'] > 0:
+        insights.append(f"📚 **Tempo de Estudo**: Média de {metricas['media_tempo_estudo']:.1f}h/semana por estudante")
+    
+    # Faltas
+    if metricas['media_faltas'] > 0:
+        insights.append(f"❌ **Faltas**: Média de {metricas['media_faltas']:.1f} faltas por estudante")
+    
+    # Taxa de aprovação
+    if metricas['taxa_aprovacao'] > 0:
+        insights.append(f"✅ **Aprovação**: Taxa de aprovação de {metricas['taxa_aprovacao']:.1f}%")
+    
+    # Média de notas
+    if metricas['media_nota_final'] > 0:
+        insights.append(f"📊 **Desempenho**: Média de notas finais de {metricas['media_nota_final']:.1f}")
+    
     return {
         'titulo': '📚 Principais Insights - Dataset UCI',
-        'insights': [
-            "🎯 **Correlação Forte**: Notas do 1º e 2º bimestre têm correlação de 0.81 e 0.91 com a nota final",
-            "👥 **Gênero**: Estudantes do sexo feminino representam 58.2% e têm desempenho ligeiramente superior",
-            "🍷 **Consumo de Álcool**: 45.2% dos estudantes têm baixo consumo, com melhor desempenho acadêmico",
-            "📚 **Tempo de Estudo**: Estudantes que estudam 5-10h/semana têm concentração de notas mais altas",
-            "❌ **Faltas**: Estudantes com menos de 10 faltas alcançam notas máximas (10-14 pontos)",
-            "👨‍👩‍👧‍👦 **Família**: Escolaridade dos pais influencia diretamente o desempenho dos filhos"
+        'insights': insights if insights else [
+            "🎯 **Correlação Forte**: Notas do 1º e 2º bimestre têm correlação forte com a nota final",
+            "👥 **Gênero**: Distribuição equilibrada entre gêneros",
+            "📚 **Tempo de Estudo**: Fator importante para o desempenho acadêmico",
+            "❌ **Faltas**: Impactam negativamente o desempenho",
+            "👨‍👩‍👧‍👦 **Família**: Escolaridade dos pais influencia o desempenho dos filhos"
         ]
     }
 
 def obter_insights_oulad():
-    """Retorna insights principais do dataset OULAD"""
+    """Retorna insights principais do dataset OULAD baseados em dados reais"""
+    metricas = obter_metricas_principais_oulad()
+    
+    insights = []
+    
+    # Demografia
+    if metricas['distribuicao_genero']:
+        genero_maioria = max(metricas['distribuicao_genero'], key=metricas['distribuicao_genero'].get)
+        insights.append(f"👥 **Demografia**: {metricas['distribuicao_genero'][genero_maioria]:.1f}% são do sexo {genero_maioria}")
+    
+    if metricas['faixa_etaria_principal'] != 'N/A':
+        insights.append(f"👥 **Faixa Etária**: Faixa etária predominante de {metricas['faixa_etaria_principal']}")
+    
+    # Desempenho
+    if metricas['taxa_aprovacao'] > 0:
+        insights.append(f"🏆 **Alto Desempenho**: {metricas['taxa_aprovacao']:.1f}% de aprovação")
+    
+    if metricas['estudantes_distincao'] > 0:
+        insights.append(f"🏆 **Distinção**: {metricas['estudantes_distincao']:.1f}% obtendo distinção")
+    
+    # Engajamento
+    if metricas['media_cliques'] > 0:
+        insights.append(f"🖱️ **Engajamento**: Média de {metricas['media_cliques']:.1f} cliques por estudante, indicando engajamento moderado")
+    
+    # Atividades
+    if metricas['atividade_mais_comum'] != 'N/A':
+        insights.append(f"📚 **Atividades**: '{metricas['atividade_mais_comum']}' é a atividade mais realizada")
+    
+    # Região
+    if metricas['regiao_principal'] != 'N/A':
+        insights.append(f"🌍 **Região**: {metricas['regiao_principal']} concentra a maior parte dos estudantes")
+    
+    # Distribuição de resultados
+    if metricas['estudantes_reprovados'] > 0:
+        insights.append(f"📊 **Distribuição**: Aprovação supera largamente outras categorias (reprovação: {metricas['estudantes_reprovados']:.1f}%)")
+    
+    # Total de estudantes
+    if metricas['total_estudantes'] > 0:
+        insights.append(f"👥 **Total**: {metricas['total_estudantes']:,} estudantes analisados")
+    
     return {
         'titulo': '🌐 Principais Insights - Dataset OULAD',
-        'insights': [
-            "👥 **Demografia**: 56.2% são do sexo masculino, com faixa etária predominante de 35-55 anos",
-            "🏆 **Alto Desempenho**: 78.5% de aprovação, com 8.2% obtendo distinção",
-            "🖱️ **Engajamento**: Média de 4.65 cliques por estudante, indicando engajamento moderado",
-            "📚 **Atividades**: 'outcontent' é a atividade mais realizada, seguida por 'forumng'",
-            "🌍 **Região**: South West Region concentra a maior parte dos estudantes",
-            "📊 **Distribuição**: Aprovação supera largamente outras categorias (reprovação: 13.3%)"
+        'insights': insights if insights else [
+            "👥 **Demografia**: Distribuição equilibrada entre gêneros",
+            "🏆 **Alto Desempenho**: Boa taxa de aprovação geral",
+            "🖱️ **Engajamento**: Nível moderado de engajamento na plataforma",
+            "📚 **Atividades**: Diversas atividades disponíveis",
+            "🌍 **Região**: Distribuição geográfica variada",
+            "📊 **Distribuição**: Resultados positivos predominam"
         ]
     }
 

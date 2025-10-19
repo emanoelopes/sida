@@ -109,15 +109,25 @@ with tab3:
         st.pyplot(fig_comparativo)
         plt.clf()
     
-    # Resumo comparativo
+    # Resumo comparativo dinâmico
     st.markdown("### 📈 Resumo Comparativo")
-    st.markdown("""
+    
+    # Carregar métricas para comparação dinâmica
+    metricas_uci = obter_metricas_principais_uci()
+    metricas_oulad = obter_metricas_principais_oulad()
+    
+    # Determinar gênero predominante
+    uci_genero_maioria = max(metricas_uci['distribuicao_genero'], key=metricas_uci['distribuicao_genero'].get) if metricas_uci['distribuicao_genero'] else 'N/A'
+    oulad_genero_maioria = max(metricas_oulad['distribuicao_genero'], key=metricas_oulad['distribuicao_genero'].get) if metricas_oulad['distribuicao_genero'] else 'N/A'
+    
+    st.markdown(f"""
     **Principais Diferenças:**
     - **Modalidade**: UCI (presencial) vs OULAD (online)
-    - **Taxa de Aprovação**: OULAD (78.5%) supera UCI (67.3%)
-    - **Demografia**: UCI tem mais mulheres (58.2%), OULAD tem mais homens (56.2%)
-    - **Faixa Etária**: UCI (15-19 anos) vs OULAD (35-55 anos)
-    - **Engajamento**: OULAD permite medir cliques e atividades online
+    - **Taxa de Aprovação**: OULAD ({metricas_oulad['taxa_aprovacao']:.1f}%) vs UCI ({metricas_uci['taxa_aprovacao']:.1f}%)
+    - **Total de Estudantes**: UCI ({metricas_uci['total_estudantes']:,}) vs OULAD ({metricas_oulad['total_estudantes']:,})
+    - **Demografia**: UCI tem mais {uci_genero_maioria} ({metricas_uci['distribuicao_genero'].get(uci_genero_maioria, 0):.1f}%), OULAD tem mais {oulad_genero_maioria} ({metricas_oulad['distribuicao_genero'].get(oulad_genero_maioria, 0):.1f}%)
+    - **Faixa Etária**: UCI (15-19 anos) vs OULAD ({metricas_oulad['faixa_etaria_principal']})
+    - **Engajamento**: OULAD permite medir cliques ({metricas_oulad['media_cliques']:.1f} cliques/estudante) e atividades online
     """)
 
 with tab4:
@@ -166,31 +176,43 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### 📚 Para Escolas Públicas (UCI)")
-    st.markdown("""
+    
+    # Carregar métricas UCI para insights dinâmicos
+    metricas_uci = obter_metricas_principais_uci()
+    
+    st.markdown(f"""
     **Pontos de Atenção:**
-    - Focar em redução de faltas (correlação negativa com desempenho)
-    - Incentivar tempo de estudo adequado (5-10h/semana)
-    - Apoiar estudantes com baixo consumo de álcool
+    - Focar em redução de faltas (média atual: {metricas_uci['media_faltas']:.1f} faltas/estudante)
+    - Incentivar tempo de estudo adequado (média atual: {metricas_uci['media_tempo_estudo']:.1f}h/semana)
+    - Apoiar estudantes com baixo consumo de álcool ({metricas_uci['estudantes_alcool_baixo']:.1f}% têm baixo consumo)
     - Considerar influência da escolaridade dos pais
+    - Taxa de aprovação atual: {metricas_uci['taxa_aprovacao']:.1f}%
     
     **Recomendações:**
     - Programas de acompanhamento para estudantes com muitas faltas
     - Workshops sobre gestão de tempo de estudo
     - Envolvimento das famílias no processo educacional
+    - Foco em melhorar a taxa de aprovação de {metricas_uci['taxa_aprovacao']:.1f}%
     """)
 
 with col2:
     st.markdown("### 🌐 Para Plataformas Online (OULAD)")
-    st.markdown("""
+    
+    # Carregar métricas OULAD para insights dinâmicos
+    metricas_oulad = obter_metricas_principais_oulad()
+    
+    st.markdown(f"""
     **Pontos Fortes:**
-    - Alta taxa de aprovação (78.5%)
-    - Boa distribuição de atividades
-    - Engajamento moderado mas efetivo
+    - Alta taxa de aprovação ({metricas_oulad['taxa_aprovacao']:.1f}%)
+    - Boa distribuição de atividades (principal: {metricas_oulad['atividade_mais_comum']})
+    - Engajamento moderado mas efetivo ({metricas_oulad['media_cliques']:.1f} cliques/estudante)
+    - {metricas_oulad['estudantes_distincao']:.1f}% dos estudantes obtêm distinção
     
     **Recomendações:**
-    - Aumentar atividades do tipo 'outcontent' e 'forumng'
-    - Focar em estudantes da faixa 35-55 anos
-    - Desenvolver estratégias para reduzir taxa de reprovação (13.3%)
+    - Aumentar atividades do tipo '{metricas_oulad['atividade_mais_comum']}'
+    - Focar em estudantes da faixa {metricas_oulad['faixa_etaria_principal']}
+    - Desenvolver estratégias para reduzir taxa de reprovação ({metricas_oulad['estudantes_reprovados']:.1f}%)
+    - Manter foco na região {metricas_oulad['regiao_principal']}
     """)
 
 # Footer
