@@ -47,10 +47,18 @@ def criar_grafico_desempenho_por_genero_oulad(df_oulad):
         return None
     
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.countplot(data=df_oulad, x='gender', hue='final_result', ax=ax)
+    # Contar estudantes únicos por gênero e resultado final
+    if 'id_student' in df_oulad.columns:
+        genero_resultado = df_oulad.groupby(['gender', 'final_result'])['id_student'].nunique().reset_index()
+        genero_resultado.columns = ['gender', 'final_result', 'count']
+        import seaborn as sns
+        sns.barplot(data=genero_resultado, x='gender', y='count', hue='final_result', ax=ax)
+        ax.set_ylabel("Número de Estudantes Únicos")
+    else:
+        sns.countplot(data=df_oulad, x='gender', hue='final_result', ax=ax)
+        ax.set_ylabel("Contagem")
     ax.set_title("Resultado Final por Gênero (OULAD)")
     ax.set_xlabel("Gênero")
-    ax.set_ylabel("Contagem")
     ax.legend(title="Resultado Final")
     return fig
 
@@ -124,10 +132,16 @@ def criar_grafico_distribuicao_idade_oulad(df_oulad):
         return None
     
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.histplot(df_oulad['age_band'], bins=30, ax=ax)
+    # Contar estudantes únicos por faixa etária
+    if 'id_student' in df_oulad.columns:
+        idade_counts = df_oulad.groupby('age_band')['id_student'].nunique()
+        sns.barplot(x=idade_counts.index, y=idade_counts.values, ax=ax)
+        ax.set_ylabel("Número de Estudantes Únicos")
+    else:
+        sns.histplot(df_oulad['age_band'], bins=30, ax=ax)
+        ax.set_ylabel("Frequência")
     ax.set_title("Distribuição de Estudantes por Idade (OULAD)")
     ax.set_xlabel("Faixa Etária")
-    ax.set_ylabel("Frequência")
     return fig
 
 def criar_grafico_resultado_final_oulad(df_oulad):
@@ -136,11 +150,17 @@ def criar_grafico_resultado_final_oulad(df_oulad):
         return None
     
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.countplot(data=df_oulad, x='final_result', 
-                  order=df_oulad['final_result'].value_counts().index, ax=ax)
+    # Contar estudantes únicos por resultado final
+    if 'id_student' in df_oulad.columns:
+        resultado_counts = df_oulad.groupby('final_result')['id_student'].nunique().sort_values(ascending=False)
+        sns.barplot(x=resultado_counts.index, y=resultado_counts.values, ax=ax)
+        ax.set_ylabel("Número de Estudantes Únicos")
+    else:
+        sns.countplot(data=df_oulad, x='final_result', 
+                      order=df_oulad['final_result'].value_counts().index, ax=ax)
+        ax.set_ylabel("Contagem")
     ax.set_title("Distribuição de Resultados Finais (OULAD)")
     ax.set_xlabel("Resultado Final")
-    ax.set_ylabel("Contagem")
     return fig
 
 def criar_grafico_consumo_alcool_vs_desempenho(df_uci):
@@ -306,10 +326,12 @@ def criar_grafico_sugerido_oulad():
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         
         # 1. Distribuição de resultados finais
-        if 'final_result' in df_oulad.columns:
-            resultados_counts = df_oulad['final_result'].value_counts()
+        if 'final_result' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            # Contar estudantes únicos por resultado final
+            resultados_counts = df_oulad.groupby('final_result')['id_student'].nunique()
             resultados = resultados_counts.index.tolist()
-            percentuais = (resultados_counts / len(df_oulad) * 100).tolist()
+            total_estudantes = df_oulad['id_student'].nunique()
+            percentuais = (resultados_counts / total_estudantes * 100).tolist()
             cores = ['lightgreen', 'gold', 'lightcoral', 'lightgray']
             
             wedges, texts, autotexts = axes[0, 0].pie(percentuais, labels=resultados, colors=cores[:len(resultados)], autopct='%1.1f%%', startangle=90)
@@ -319,10 +341,12 @@ def criar_grafico_sugerido_oulad():
             axes[0, 0].set_title('Distribuição de Resultados Finais (OULAD)')
         
         # 2. Distribuição por gênero
-        if 'gender' in df_oulad.columns:
-            genero_counts = df_oulad['gender'].value_counts()
+        if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            # Contar estudantes únicos por gênero
+            genero_counts = df_oulad.groupby('gender')['id_student'].nunique()
             generos = genero_counts.index.tolist()
-            percentuais_gen = (genero_counts / len(df_oulad) * 100).tolist()
+            total_estudantes = df_oulad['id_student'].nunique()
+            percentuais_gen = (genero_counts / total_estudantes * 100).tolist()
             cores_gen = ['lightblue', 'pink']
             
             bars = axes[0, 1].bar(generos, percentuais_gen, color=cores_gen[:len(generos)])
@@ -349,10 +373,12 @@ def criar_grafico_sugerido_oulad():
             axes[1, 0].set_title('Distribuição de Atividades por Tipo')
         
         # 4. Distribuição por faixa etária
-        if 'age_band' in df_oulad.columns:
-            idade_counts = df_oulad['age_band'].value_counts()
+        if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns:
+            # Contar estudantes únicos por faixa etária
+            idade_counts = df_oulad.groupby('age_band')['id_student'].nunique()
             faixas_etarias = idade_counts.index.tolist()
-            percentuais_idade = (idade_counts / len(df_oulad) * 100).tolist()
+            total_estudantes = df_oulad['id_student'].nunique()
+            percentuais_idade = (idade_counts / total_estudantes * 100).tolist()
             cores_idade = ['lightgreen', 'gold', 'lightcoral']
             
             bars = axes[1, 1].bar(faixas_etarias, percentuais_idade, color=cores_idade[:len(faixas_etarias)])
