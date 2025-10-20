@@ -4,14 +4,14 @@ from pathlib import Path
 import pickle
 import os
 
-def carregar_uci_dados(pickle_path: str = "../uci.pkl") -> pd.DataFrame:
-    """Carrega dados UCI - tenta carregar do pickle, se não conseguir carrega dados brutos"""
-    # Primeiro, tentar carregar dados processados do pickle
+def carregar_uci_dados(pickle_path: str = "../uci_dataframe.pkl") -> pd.DataFrame:
+    """Carrega dados UCI processados do arquivo pickle"""
+    # Tentar diferentes caminhos para o arquivo pickle
     possible_paths = [
         pickle_path,
         f"../{pickle_path}",
         f"../../{pickle_path}",
-        Path(__file__).parent.parents[1] / "uci.pkl"
+        Path(__file__).parent.parents[1] / "uci_dataframe.pkl"
     ]
     
     df = None
@@ -20,19 +20,14 @@ def carregar_uci_dados(pickle_path: str = "../uci.pkl") -> pd.DataFrame:
         if p.is_file():
             try:
                 with p.open("rb") as f:
-                    content = pickle.load(f)
-                if isinstance(content, pd.DataFrame):
-                    df = content
+                    df = pickle.load(f)
+                if isinstance(df, pd.DataFrame):
                     break
             except Exception as e:
                 continue
     
-    # Se não conseguiu carregar DataFrame do pickle, carregar dados brutos
     if df is None:
-        try:
-            df = carregar_dados_uci_raw()
-        except Exception as e:
-            raise FileNotFoundError(f"Não foi possível carregar dados UCI: {e}")
+        raise FileNotFoundError(f"Arquivo uci_dataframe.pkl não encontrado em nenhum dos caminhos: {possible_paths}")
     
     return df
 
@@ -62,7 +57,6 @@ def carregar_oulad_dados(pickle_path: str = "../oulad_data.pkl") -> pd.DataFrame
                 print(f"⚠️ Erro ao carregar pickle {p}: {e}")
                 continue
     
-    # Se não conseguiu carregar DataFrame do pickle, carregar dados brutos
     if df is None:
         try:
             print("🔄 Carregando dados OULAD brutos...")

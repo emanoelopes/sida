@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 import time
-from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
+try:
+    from .carregar_dados import carregar_uci_dados, carregar_oulad_dados
+except ImportError:
+    # Fallback para quando executado diretamente
+    from carregar_dados import carregar_uci_dados, carregar_oulad_dados
 
 def leitura_oulad_data():
     """Função para leitura dos dados OULAD - mantida para compatibilidade"""
@@ -850,13 +854,18 @@ def criar_secao_pygwalker():
         )
     
     with col2:
-        usar_pygwalker = st.checkbox(
-            "Ativar PyGWalker", 
+        usar_pygwalker_uci = st.checkbox(
+            "Ativar PyGWalker UCI", 
             value=False,
-            help="Permite análise interativa dos dados"
+            help="Permite análise interativa dos dados UCI"
         )
-    
-    if usar_pygwalker:
+
+        usar_pygwalker_oulad = st.checkbox(
+            "Ativar PyGWalker OULAD", 
+            value=False,
+            help="Permite análise interativa dos dados OULAD"
+        )
+    if usar_pygwalker_uci:
         try:
             import pygwalker as pyg
             from pygwalker.api.streamlit import StreamlitRenderer
@@ -891,3 +900,27 @@ def criar_secao_pygwalker():
             st.error(f"❌ Erro ao carregar PyGWalker: {e}")
     else:
         st.info(f"💡 Marque a opção acima para ativar a análise interativa com PyGWalker para o dataset {dataset_selecionado}")
+
+    if usar_pygwalker_oulad:
+        try:
+            import pygwalker as pyg
+            from pygwalker.api.streamlit import StreamlitRenderer
+            
+            # Verificar se há dados disponíveis
+            if 'df_oulad' in st.session_state and not st.session_state['df_oulad'].empty:
+                st.info("📊 Carregando PyGWalker com dados OULAD...")
+                df = st.session_state['df_oulad']
+                
+                # Criar renderer do PyGWalker
+                renderer = StreamlitRenderer(df, spec="./gw0.json", debug=False)
+                renderer.render_explore()
+                
+            else:
+                st.warning("⚠️ Nenhum dado disponível para análise interativa. Navegue para as páginas de análise primeiro.")
+            
+        except ImportError:
+            st.error("❌ PyGWalker não está instalado. Execute: `pip install pygwalker`")
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar PyGWalker: {e}")
+        else:
+            st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")
