@@ -70,7 +70,12 @@ with st.sidebar:
     ) 
     st.markdown("---")
     st.markdown("## Informações")
-    st.write(f"**Número de Instâncias:** {df.shape[0]}")
+    # Calcular estudantes únicos baseado em características demográficas
+    colunas_id = ['school', 'sex', 'age', 'address', 'famsize', 'Pstatus', 'Medu', 'Fedu', 'Mjob', 'Fjob', 'reason', 'guardian']
+    estudantes_unicos = df[colunas_id].drop_duplicates().shape[0]
+    
+    st.write(f"**Número de Registros:** {df.shape[0]} (inclui estudantes em múltiplas matérias)")
+    st.write(f"**Número de Estudantes Únicos:** {estudantes_unicos}")
     st.write(f"**Número de Atributos:** {df.shape[1]}")
     st.write(f"**Número de Atributos Numéricos:** {numeric_df.shape[1]}")
     st.write(f"**Número de Atributos Categóricos:** {df.select_dtypes('object').shape[1]}")

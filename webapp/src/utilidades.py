@@ -67,8 +67,10 @@ def obter_metricas_principais_uci():
                 'estudantes_alcool_alto': 0
             }
         
-        # Calcular métricas reais
-        total_estudantes = len(df_uci)
+        # Calcular métricas reais - contar estudantes únicos baseado em características demográficas
+        # Usar combinação de colunas que identificam unicamente cada estudante
+        colunas_id = ['school', 'sex', 'age', 'address', 'famsize', 'Pstatus', 'Medu', 'Fedu', 'Mjob', 'Fjob', 'reason', 'guardian']
+        total_estudantes = df_uci[colunas_id].drop_duplicates().shape[0]
         media_nota_final = df_uci['G3'].mean() if 'G3' in df_uci.columns else 0
         taxa_aprovacao = (df_uci['G3'] >= 10).mean() * 100 if 'G3' in df_uci.columns else 0
         media_faltas = df_uci['absences'].mean() if 'absences' in df_uci.columns else 0
@@ -230,8 +232,12 @@ def calcular_metricas_uci(df_uci):
     if df_uci.empty:
         return {}
     
+    # Contar estudantes únicos baseado em características demográficas
+    colunas_id = ['school', 'sex', 'age', 'address', 'famsize', 'Pstatus', 'Medu', 'Fedu', 'Mjob', 'Fjob', 'reason', 'guardian']
+    total_estudantes_unicos = df_uci[colunas_id].drop_duplicates().shape[0]
+    
     metricas = {
-        'total_alunos': len(df_uci),
+        'total_alunos': total_estudantes_unicos,
         'media_nota_final': df_uci['G3'].mean() if 'G3' in df_uci.columns else 0,
         'taxa_aprovacao': (df_uci['G3'] >= 10).mean() * 100 if 'G3' in df_uci.columns else 0,
         'media_faltas': df_uci['absences'].mean() if 'absences' in df_uci.columns else 0,
