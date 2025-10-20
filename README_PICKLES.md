@@ -8,10 +8,13 @@ Os arquivos pickle contêm DataFrames pandas processados para eliminar a necessi
 ### `uci_dataframe.pkl`
 - **Conteúdo**: DataFrame UCI processado e concatenado
 - **Tamanho**: ~0.12 MB
-- **Registros**: 1,044 estudantes
+- **Registros**: 1,044 registros (661 estudantes únicos)
 - **Colunas**: 34 (incluindo transformações aplicadas)
 - **Processamento**: 
-  - Concatenação de student-mat.csv + student-por.csv
+  - Concatenação de student-mat.csv (395 registros) + student-por.csv (649 registros)
+  - 366 estudantes aparecem em ambas as matérias (matemática e português)
+  - 25 estudantes apenas em matemática, 270 apenas em português
+  - Total: 661 estudantes únicos
   - Transformação de valores categóricos
   - Mapeamento de códigos para labels legíveis
 
