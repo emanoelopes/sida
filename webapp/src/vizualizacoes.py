@@ -468,3 +468,224 @@ def criar_grafico_comparativo_insights():
     except Exception as e:
         st.warning(f"Erro ao criar gráfico comparativo: {e}")
         return None
+
+# =============================================================================
+# FUNÇÕES PARA EDA DE DADOS DO USUÁRIO
+# =============================================================================
+
+def criar_graficos_eda_usuario(df: pd.DataFrame, resultado_eda: dict) -> list:
+    """Cria gráficos de EDA para dados do usuário"""
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        import numpy as np
+        
+        figuras = []
+        
+        if resultado_eda.get('is_regression', True):
+            # EDA para regressão
+            figuras.extend(_criar_graficos_regressao(df, resultado_eda))
+        else:
+            # EDA para classificação
+            figuras.extend(_criar_graficos_classificacao(df, resultado_eda))
+        
+        # Gráficos comuns
+        figuras.extend(_criar_graficos_comuns(df, resultado_eda))
+        
+        return figuras
+        
+    except Exception as e:
+        st.warning(f"Erro ao criar gráficos EDA: {e}")
+        return []
+
+def _criar_graficos_regressao(df: pd.DataFrame, resultado_eda: dict) -> list:
+    """Cria gráficos específicos para regressão"""
+    figuras = []
+    
+    try:
+        # 1. Distribuição da variável target
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(df['resultado_final'], bins=20, kde=True, ax=ax)
+        ax.set_title('Distribuição da Variável Target (Resultado Final)')
+        ax.set_xlabel('Resultado Final')
+        ax.set_ylabel('Frequência')
+        figuras.append(fig)
+        
+        # 2. Box plots das features vs target
+        numeric_features = df.select_dtypes(include=[np.number]).columns
+        numeric_features = [col for col in numeric_features if col != 'resultado_final']
+        
+        if len(numeric_features) > 0:
+            n_cols = min(2, len(numeric_features))
+            n_rows = (len(numeric_features) + n_cols - 1) // n_cols
+            
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 4*n_rows))
+            if n_rows == 1:
+                axes = [axes] if n_cols == 1 else axes
+            else:
+                axes = axes.flatten()
+            
+            for i, feature in enumerate(numeric_features):
+                if i < len(axes):
+                    sns.boxplot(data=df, x=feature, y='resultado_final', ax=axes[i])
+                    axes[i].set_title(f'{feature} vs Resultado Final')
+                    axes[i].tick_params(axis='x', rotation=45)
+            
+            # Ocultar subplots vazios
+            for i in range(len(numeric_features), len(axes)):
+                axes[i].set_visible(False)
+            
+            plt.tight_layout()
+            figuras.append(fig)
+        
+    except Exception as e:
+        st.warning(f"Erro ao criar gráficos de regressão: {e}")
+    
+    return figuras
+
+def _criar_graficos_classificacao(df: pd.DataFrame, resultado_eda: dict) -> list:
+    """Cria gráficos específicos para classificação"""
+    figuras = []
+    
+    try:
+        # 1. Distribuição das classes
+        fig, ax = plt.subplots(figsize=(8, 6))
+        class_counts = df['resultado_final'].value_counts()
+        sns.barplot(x=class_counts.index, y=class_counts.values, ax=ax)
+        ax.set_title('Distribuição das Classes (Resultado Final)')
+        ax.set_xlabel('Resultado Final')
+        ax.set_ylabel('Frequência')
+        plt.xticks(rotation=45)
+        figuras.append(fig)
+        
+        # 2. Box plots das features por classe
+        numeric_features = df.select_dtypes(include=[np.number]).columns
+        
+        if len(numeric_features) > 0:
+            n_cols = min(2, len(numeric_features))
+            n_rows = (len(numeric_features) + n_cols - 1) // n_cols
+            
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 4*n_rows))
+            if n_rows == 1:
+                axes = [axes] if n_cols == 1 else axes
+            else:
+                axes = axes.flatten()
+            
+            for i, feature in enumerate(numeric_features):
+                if i < len(axes):
+                    sns.boxplot(data=df, x='resultado_final', y=feature, ax=axes[i])
+                    axes[i].set_title(f'{feature} por Classe')
+                    axes[i].tick_params(axis='x', rotation=45)
+            
+            # Ocultar subplots vazios
+            for i in range(len(numeric_features), len(axes)):
+                axes[i].set_visible(False)
+            
+            plt.tight_layout()
+            figuras.append(fig)
+        
+    except Exception as e:
+        st.warning(f"Erro ao criar gráficos de classificação: {e}")
+    
+    return figuras
+
+def _criar_graficos_comuns(df: pd.DataFrame, resultado_eda: dict) -> list:
+    """Cria gráficos comuns para ambos os tipos de problema"""
+    figuras = []
+    
+    try:
+        # 1. Matriz de correlação (apenas features numéricas)
+        numeric_df = df.select_dtypes(include=[np.number])
+        if len(numeric_df.columns) >= 2:
+            fig, ax = plt.subplots(figsize=(10, 8))
+            corr = numeric_df.corr()
+            mask = np.triu(np.ones_like(corr, dtype=bool))
+            sns.heatmap(corr, mask=mask, cmap='RdBu_r', center=0,
+                       square=True, linewidths=0.5, annot=True, fmt='.2f', ax=ax)
+            ax.set_title('Matriz de Correlação - Features Numéricas')
+            figuras.append(fig)
+        
+        # 2. Feature importance
+        if not resultado_eda.get('feature_importance', pd.DataFrame()).empty:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            df_importance = resultado_eda['feature_importance']
+            bars = ax.barh(df_importance['feature'], df_importance['importance'], color='skyblue')
+            ax.set_title('Importância das Features')
+            ax.set_xlabel('Importância')
+            ax.set_ylabel('Features')
+            
+            # Adicionar valores nas barras
+            for bar, importance in zip(bars, df_importance['importance']):
+                ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2, 
+                       f'{importance:.3f}', va='center', fontsize=10)
+            
+            plt.tight_layout()
+            figuras.append(fig)
+        
+        # 3. Scatter plots entre features (se houver pelo menos 2 features numéricas)
+        numeric_features = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_features) >= 2:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            feature1, feature2 = numeric_features[0], numeric_features[1]
+            sns.scatterplot(data=df, x=feature1, y=feature2, hue='resultado_final', ax=ax)
+            ax.set_title(f'Relação entre {feature1} e {feature2}')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            figuras.append(fig)
+        
+    except Exception as e:
+        st.warning(f"Erro ao criar gráficos comuns: {e}")
+    
+    return figuras
+
+def criar_grafico_metricas_modelo(resultado_eda: dict) -> plt.Figure:
+    """Cria gráfico com métricas do modelo"""
+    try:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        metrics = resultado_eda.get('metrics', {})
+        model_type = metrics.get('type', 'regression')
+        
+        if model_type == 'regression':
+            # Métricas de regressão
+            mae = metrics.get('mae', 0)
+            rmse = metrics.get('rmse', 0)
+            r2 = metrics.get('r2', 0)
+            
+            metricas = ['MAE', 'RMSE', 'R²']
+            valores = [mae, rmse, r2]
+            cores = ['lightcoral', 'lightblue', 'lightgreen']
+            
+            bars = ax.bar(metricas, valores, color=cores)
+            ax.set_title('Métricas do Modelo de Regressão')
+            ax.set_ylabel('Valor')
+            
+            # Adicionar valores nas barras
+            for bar, valor in zip(bars, valores):
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
+                       f'{valor:.3f}', ha='center', va='bottom')
+        
+        else:
+            # Métricas de classificação
+            accuracy = metrics.get('accuracy', 0)
+            
+            metricas = ['Acurácia']
+            valores = [accuracy]
+            cores = ['lightgreen']
+            
+            bars = ax.bar(metricas, valores, color=cores)
+            ax.set_title('Métricas do Modelo de Classificação')
+            ax.set_ylabel('Valor')
+            ax.set_ylim(0, 1)
+            
+            # Adicionar valores nas barras
+            for bar, valor in zip(bars, valores):
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
+                       f'{valor:.3f}', ha='center', va='bottom')
+        
+        plt.tight_layout()
+        return fig
+        
+    except Exception as e:
+        st.warning(f"Erro ao criar gráfico de métricas: {e}")
+        return None

@@ -7,6 +7,19 @@ import tempfile                 # To save PDF temporarily for Tabula
 import os
 import numpy as np              # For numeric checks
 import logging                  # For better error logging (optional but good practice)
+import matplotlib.pyplot as plt # For EDA visualizations
+import seaborn as sns           # For EDA visualizations
+
+# Import custom functions
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+from utilidades import (
+    gerar_template_features, 
+    converter_template_para_excel, 
+    validar_template_usuario, 
+    realizar_eda_automatica
+)
+from vizualizacoes import criar_graficos_eda_usuario, criar_grafico_metricas_modelo
 
 # --- Basic Logging Setup ---
 # Helps in debugging, especially if deployed
@@ -319,6 +332,14 @@ if 'uploaded_file_name' not in st.session_state:
     st.session_state.uploaded_file_name = None
 if 'data_loaded' not in st.session_state:
     st.session_state.data_loaded = False
+if 'template_dataset_type' not in st.session_state:
+    st.session_state.template_dataset_type = 'uci'
+if 'template_downloaded' not in st.session_state:
+    st.session_state.template_downloaded = False
+if 'user_data_uploaded' not in st.session_state:
+    st.session_state.user_data_uploaded = None
+if 'eda_results' not in st.session_state:
+    st.session_state.eda_results = None
 # 'dark_mode' initialized near st.set_page_config
 
 # --- Sidebar ---
@@ -395,7 +416,7 @@ with st.sidebar: # ENHANCEMENT: Use 'with' context manager for sidebar clarity
         st.header("📊 Analysis Options")
         df = st.session_state.current_df # Use current (possibly cleaned) df
 
-        analysis_options = ['Data Preview & Info', 'Data Cleaning']
+        analysis_options = ['Data Preview & Info', 'Data Cleaning', 'Feature Importance Template']
         numeric_cols_exist = any(pd.api.types.is_numeric_dtype(dtype) for dtype in df.dtypes)
 
         if numeric_cols_exist:
@@ -713,3 +734,178 @@ else:
                 except Exception as corr_e:
                      st.error(f"Could not calculate correlations. Ensure numeric columns contain valid numbers. Error: {corr_e}")
                      logging.error(f"Correlation calculation error: {corr_e}", exc_info=True)
+
+    # --- Feature Importance Template ---
+    elif analysis_type == 'Feature Importance Template':
+        st.subheader("🎯 Template de Feature Importance")
+        
+        # Seção de seleção de dataset
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.markdown("""
+            **Como usar:**
+            1. Selecione o dataset base (UCI ou OULAD) para obter as features mais importantes
+            2. Baixe o template Excel com as 2 features mais relevantes
+            3. Preencha o template com seus dados (mantenha a coluna 'resultado_final')
+            4. Faça upload do template preenchido para análise automática
+            """)
+        
+        with col2:
+            dataset_tipo = st.radio(
+                "Dataset base:",
+                ["UCI", "OULAD"],
+                index=0 if st.session_state.template_dataset_type == 'uci' else 1,
+                help="Escolha qual dataset usar como base para as features importantes"
+            )
+            st.session_state.template_dataset_type = dataset_tipo.lower()
+        
+        # Gerar e baixar template
+        if st.button("📥 Gerar Template", key='generate_template'):
+            with st.spinner("Gerando template..."):
+                df_template = gerar_template_features(st.session_state.template_dataset_type)
+                
+                if not df_template.empty:
+                    st.session_state.template_downloaded = True
+                    st.success(f"Template gerado com sucesso! Inclui as features: {', '.join([col for col in df_template.columns if col != 'resultado_final'])}")
+                    
+                    # Mostrar preview do template
+                    st.markdown("**Preview do Template:**")
+                    st.dataframe(df_template.head(), use_container_width=True)
+                    
+                    # Botão de download
+                    excel_data = converter_template_para_excel(df_template)
+                    if excel_data:
+                        st.download_button(
+                            label="⬇️ Baixar Template Excel",
+                            data=excel_data,
+                            file_name=f"template_features_{st.session_state.template_dataset_type}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key='download_template'
+                        )
+                else:
+                    st.error("Erro ao gerar template. Verifique se os dados estão carregados.")
+        
+        # Seção de upload do template preenchido
+        if st.session_state.template_downloaded:
+            st.markdown("---")
+            st.subheader("📤 Upload do Template Preenchido")
+            
+            uploaded_template = st.file_uploader(
+                "Faça upload do template preenchido:",
+                type=['csv', 'xlsx', 'xls'],
+                accept_multiple_files=False,
+                help="Upload do template Excel preenchido com seus dados",
+                key='template_uploader'
+            )
+            
+            if uploaded_template is not None:
+                try:
+                    # Carregar dados do template
+                    if uploaded_template.name.endswith('.csv'):
+                        df_usuario = pd.read_csv(uploaded_template)
+                    else:
+                        df_usuario = pd.read_excel(uploaded_template)
+                    
+                    # Validar template
+                    df_template_ref = gerar_template_features(st.session_state.template_dataset_type)
+                    is_valid, validation_msg = validar_template_usuario(df_usuario, df_template_ref)
+                    
+                    if is_valid:
+                        st.success(f"✅ {validation_msg}")
+                        st.session_state.user_data_uploaded = df_usuario
+                        
+                        # Mostrar preview dos dados
+                        st.markdown("**Preview dos Dados Carregados:**")
+                        st.dataframe(df_usuario.head(), use_container_width=True)
+                        
+                        # Botão para executar EDA
+                        if st.button("🔍 Executar Análise Exploratória", key='run_eda'):
+                            with st.spinner("Executando análise exploratória..."):
+                                resultado_eda = realizar_eda_automatica(df_usuario)
+                                
+                                if resultado_eda:
+                                    st.session_state.eda_results = resultado_eda
+                                    st.success("Análise concluída com sucesso!")
+                                    st.rerun()
+                                else:
+                                    st.error("Erro na análise exploratória")
+                    else:
+                        st.error(f"❌ {validation_msg}")
+                        
+                except Exception as e:
+                    st.error(f"Erro ao processar arquivo: {e}")
+        
+        # Exibir resultados da EDA
+        if st.session_state.eda_results and st.session_state.user_data_uploaded is not None:
+            st.markdown("---")
+            st.subheader("📊 Resultados da Análise Exploratória")
+            
+            df_usuario = st.session_state.user_data_uploaded
+            resultado_eda = st.session_state.eda_results
+            
+            # Informações básicas
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total de Registros", df_usuario.shape[0])
+            with col2:
+                st.metric("Total de Features", df_usuario.shape[1] - 1)  # -1 para excluir target
+            with col3:
+                problem_type = "Regressão" if resultado_eda.get('is_regression', True) else "Classificação"
+                st.metric("Tipo de Problema", problem_type)
+            
+            # Métricas do modelo
+            st.markdown("### 📈 Métricas do Modelo")
+            metrics = resultado_eda.get('metrics', {})
+            
+            if metrics.get('type') == 'regression':
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("MAE", f"{metrics.get('mae', 0):.3f}")
+                with col2:
+                    st.metric("RMSE", f"{metrics.get('rmse', 0):.3f}")
+                with col3:
+                    st.metric("R²", f"{metrics.get('r2', 0):.3f}")
+            else:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Acurácia", f"{metrics.get('accuracy', 0):.3f}")
+                with col2:
+                    st.metric("Tipo", "Classificação")
+            
+            # Gráfico de métricas
+            fig_metrics = criar_grafico_metricas_modelo(resultado_eda)
+            if fig_metrics:
+                st.pyplot(fig_metrics)
+            
+            # Visualizações EDA
+            st.markdown("### 📊 Visualizações")
+            
+            # Criar e exibir gráficos
+            figuras = criar_graficos_eda_usuario(df_usuario, resultado_eda)
+            
+            if figuras:
+                # Usar tabs para organizar os gráficos
+                tab_names = [f"Gráfico {i+1}" for i in range(len(figuras))]
+                tabs = st.tabs(tab_names)
+                
+                for i, (tab, figura) in enumerate(zip(tabs, figuras)):
+                    with tab:
+                        st.pyplot(figura)
+            
+            # Feature importance
+            if not resultado_eda.get('feature_importance', pd.DataFrame()).empty:
+                st.markdown("### 🎯 Importância das Features")
+                df_importance = resultado_eda['feature_importance']
+                st.dataframe(df_importance, use_container_width=True)
+            
+            # Botão para baixar resultados
+            st.markdown("### 💾 Download dos Resultados")
+            csv_data = convert_df_to_csv(df_usuario)
+            st.download_button(
+                label="⬇️ Baixar Dados Processados (CSV)",
+                data=csv_data,
+                file_name="dados_processados_eda.csv",
+                mime="text/csv",
+                key='download_processed_data'
+            )

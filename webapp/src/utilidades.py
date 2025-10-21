@@ -585,9 +585,265 @@ def obter_insights_oulad():
         ]
     }
 
-@st.cache_data(ttl=3600)  # Cache por 1 hora
+# =============================================================================
+# FUNÇÕES DE TREINAMENTO SOB DEMANDA
+# =============================================================================
+
+def treinar_modelo_uci_on_demand():
+    """Treina modelo UCI sob demanda com progresso e salvamento automático"""
+    try:
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.preprocessing import OneHotEncoder
+        from sklearn.compose import ColumnTransformer
+        from sklearn.pipeline import Pipeline
+        from sklearn.model_selection import train_test_split
+        import pickle
+        
+        # Indicador de progresso (compatível com e sem Streamlit)
+        try:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            use_streamlit = True
+        except:
+            progress_bar = None
+            status_text = None
+            use_streamlit = False
+            print("🔄 Carregando dados UCI...")
+        
+        if use_streamlit:
+            status_text.text("🔄 Carregando dados UCI...")
+            progress_bar.progress(20)
+        else:
+            print("🔄 Carregando dados UCI...")
+        
+        # Carregar dados UCI
+        df_uci = carregar_uci_dados()
+        
+        if use_streamlit:
+            status_text.text("🔄 Preparando dados...")
+            progress_bar.progress(40)
+        else:
+            print("🔄 Preparando dados...")
+        
+        # Preparar dados como na página 1_uci.py
+        Y = df_uci['G3']
+        X = df_uci.drop('G3', axis=1)
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+        
+        if use_streamlit:
+            status_text.text("🔄 Treinando modelo RandomForest...")
+            progress_bar.progress(60)
+        else:
+            print("🔄 Treinando modelo RandomForest...")
+        
+        # Identificar colunas categóricas
+        categorical_features = X_train.select_dtypes(include=['object']).columns
+        
+        # Criar preprocessor
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+            ],
+            remainder='passthrough'
+        )
+        
+        # Criar pipeline
+        model = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))
+        ])
+        
+        # Treinar modelo
+        y_train_encoded = y_train.astype(float)
+        model.fit(X_train, y_train_encoded)
+        
+        if use_streamlit:
+            status_text.text("🔄 Salvando modelo...")
+            progress_bar.progress(80)
+        else:
+            print("🔄 Salvando modelo...")
+        
+        # Salvar modelo
+        with open('uci.pkl', 'wb') as f:
+            pickle.dump(model, f)
+        
+        if use_streamlit:
+            status_text.text("✅ Modelo UCI treinado e salvo!")
+            progress_bar.progress(100)
+            
+            # Limpar indicadores
+            progress_bar.empty()
+            status_text.empty()
+        else:
+            print("✅ Modelo UCI treinado e salvo!")
+        
+        return model
+        
+    except Exception as e:
+        try:
+            st.error(f"Erro ao treinar modelo UCI: {e}")
+        except:
+            print(f"❌ Erro ao treinar modelo UCI: {e}")
+        return None
+
+def treinar_modelo_oulad_on_demand():
+    """Treina modelo OULAD sob demanda com progresso e salvamento automático"""
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+        from sklearn.compose import ColumnTransformer
+        from sklearn.pipeline import Pipeline
+        from sklearn.model_selection import train_test_split
+        from sklearn.impute import SimpleImputer
+        import pickle
+        import numpy as np
+        
+        # Indicador de progresso (compatível com e sem Streamlit)
+        try:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            use_streamlit = True
+        except:
+            progress_bar = None
+            status_text = None
+            use_streamlit = False
+            print("🔄 Carregando dados OULAD...")
+        
+        if use_streamlit:
+            status_text.text("🔄 Carregando dados OULAD...")
+            progress_bar.progress(10)
+        else:
+            print("🔄 Carregando dados OULAD...")
+        
+        # Carregar dados OULAD
+        df_oulad = carregar_oulad_dados()
+        
+        # Usar amostra para treinamento mais rápido
+        if len(df_oulad) > 50000:
+            df_oulad = df_oulad.sample(n=50000, random_state=42)
+            if use_streamlit:
+                st.info("📊 Usando amostra de 50k registros para treinamento mais rápido")
+            else:
+                print("📊 Usando amostra de 50k registros para treinamento mais rápido")
+        
+        if use_streamlit:
+            status_text.text("🔄 Preparando dados...")
+            progress_bar.progress(30)
+        else:
+            print("🔄 Preparando dados...")
+        
+        # Preparar dados como na página 2_oulad.py
+        Y = df_oulad['final_result']
+        X = df_oulad.loc[:, df_oulad.columns != 'final_result']
+        
+        # Remover colunas irrelevantes
+        X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1, errors='ignore')
+        
+        if use_streamlit:
+            status_text.text("🔄 Dividindo dados...")
+            progress_bar.progress(50)
+        else:
+            print("🔄 Dividindo dados...")
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+        
+        if use_streamlit:
+            status_text.text("🔄 Limpando dados de treino...")
+            progress_bar.progress(60)
+        else:
+            print("🔄 Limpando dados de treino...")
+        
+        # Limpar dados de treino
+        nan_rows_train = y_train.isnull()
+        X_train_cleaned = X_train[~nan_rows_train].copy()
+        y_train_cleaned = y_train[~nan_rows_train].copy()
+        
+        
+        if use_streamlit:
+            status_text.text("🔄 Treinando modelo RandomForest...")
+            progress_bar.progress(70)
+        else:
+            print("🔄 Treinando modelo RandomForest...")
+        
+        # Identificar colunas categóricas e numéricas
+        categorical_cols = X_train_cleaned.select_dtypes(include='object').columns
+        numerical_cols = X_train_cleaned.select_dtypes(include=[np.number]).columns
+        
+        # Verificar se há colunas que não são nem categóricas nem numéricas
+        all_cols = set(X_train_cleaned.columns)
+        processed_cols = set(categorical_cols) | set(numerical_cols)
+        remaining_cols = all_cols - processed_cols
+        
+        if len(remaining_cols) > 0:
+            # Adicionar colunas restantes como categóricas
+            categorical_cols = list(categorical_cols) + list(remaining_cols)
+        
+        # Criar preprocessor
+        transformers = []
+        
+        # Adicionar transformador numérico apenas se houver colunas numéricas
+        if len(numerical_cols) > 0:
+            transformers.append(('num', SimpleImputer(strategy='mean'), numerical_cols))
+        
+        # Adicionar transformador categórico apenas se houver colunas categóricas
+        if len(categorical_cols) > 0:
+            transformers.append(('cat', Pipeline(steps=[
+                ('imputer', SimpleImputer(strategy='most_frequent')),
+                ('onehot', OneHotEncoder(handle_unknown='ignore'))]), categorical_cols))
+        
+        preprocessor = ColumnTransformer(
+            transformers=transformers,
+            remainder='passthrough'
+        )
+        
+        # Criar pipeline
+        model = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('classifier', RandomForestClassifier(n_estimators=50, n_jobs=2, max_depth=4, random_state=42))
+        ])
+        
+        # Treinar modelo
+        model.fit(X_train_cleaned, y_train_cleaned)
+        
+        if use_streamlit:
+            status_text.text("🔄 Salvando modelo...")
+            progress_bar.progress(90)
+        else:
+            print("🔄 Salvando modelo...")
+        
+        # Salvar modelo
+        with open('oulad.pkl', 'wb') as f:
+            pickle.dump(model, f)
+        
+        if use_streamlit:
+            status_text.text("✅ Modelo OULAD treinado e salvo!")
+            progress_bar.progress(100)
+            
+            # Limpar indicadores
+            progress_bar.empty()
+            status_text.empty()
+        else:
+            print("✅ Modelo OULAD treinado e salvo!")
+        
+        return model
+        
+    except Exception as e:
+        try:
+            st.error(f"Erro ao treinar modelo OULAD: {e}")
+            import traceback
+            st.error(f"Traceback: {traceback.format_exc()}")
+        except:
+            print(f"❌ Erro ao treinar modelo OULAD: {e}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+        return None
+
+@st.cache_resource(ttl=7200)  # Cache por 2 horas
 def carregar_modelo_uci():
-    """Carrega o modelo UCI com cache"""
+    """Carrega o modelo UCI com cache ou treina sob demanda"""
     try:
         # Tentar diferentes caminhos para o arquivo pickle
         possible_paths = [
@@ -609,16 +865,17 @@ def carregar_modelo_uci():
                     continue
         
         if model is None:
-            raise FileNotFoundError(f"Arquivo uci.pkl não encontrado em nenhum dos caminhos: {possible_paths}")
+            st.info("📦 Modelo UCI não encontrado. Treinando modelo automaticamente...")
+            return treinar_modelo_uci_on_demand()
         
         return model
     except Exception as e:
         st.warning(f"Erro ao carregar modelo UCI: {e}")
         return None
 
-@st.cache_data(ttl=3600)  # Cache por 1 hora
+@st.cache_resource(ttl=7200)  # Cache por 2 horas
 def carregar_modelo_oulad():
-    """Carrega o modelo OULAD com cache"""
+    """Carrega o modelo OULAD com cache ou treina sob demanda"""
     try:
         # Tentar diferentes caminhos para o arquivo pickle
         possible_paths = [
@@ -640,7 +897,8 @@ def carregar_modelo_oulad():
                     continue
         
         if model is None:
-            raise FileNotFoundError(f"Arquivo oulad.pkl não encontrado em nenhum dos caminhos: {possible_paths}")
+            st.info("📦 Modelo OULAD não encontrado. Treinando modelo automaticamente (pode levar alguns minutos)...")
+            return treinar_modelo_oulad_on_demand()
         
         return model
     except Exception as e:
@@ -930,3 +1188,225 @@ def criar_secao_pygwalker():
             st.error(f"❌ Erro ao carregar PyGWalker: {e}")
         else:
             st.info("💡 Marque a opção acima para ativar a análise interativa com PyGWalker")
+
+# =============================================================================
+# FUNÇÕES PARA TEMPLATE DE FEATURE IMPORTANCE
+# =============================================================================
+
+def gerar_template_features(dataset_tipo: str) -> pd.DataFrame:
+    """Gera template com as 2 features mais importantes do dataset selecionado"""
+    try:
+        # Obter feature importance baseado no dataset
+        if dataset_tipo.lower() == 'uci':
+            df_importance = calcular_feature_importance_uci()
+        elif dataset_tipo.lower() == 'oulad':
+            df_importance = calcular_feature_importance_oulad()
+        else:
+            raise ValueError(f"Dataset tipo '{dataset_tipo}' não reconhecido. Use 'uci' ou 'oulad'")
+        
+        if df_importance.empty:
+            st.warning(f"Não foi possível obter feature importance para {dataset_tipo}")
+            return pd.DataFrame()
+        
+        # Pegar as 2 features mais importantes (maior importance)
+        top_features = df_importance.nlargest(2, 'importance')['feature'].tolist()
+        
+        # Criar template DataFrame
+        template_data = {
+            feature: [np.nan] * 10 for feature in top_features
+        }
+        template_data['resultado_final'] = [np.nan] * 10
+        
+        df_template = pd.DataFrame(template_data)
+        
+        # Adicionar algumas linhas de exemplo com valores placeholder
+        if dataset_tipo.lower() == 'uci':
+            # Exemplos baseados no dataset UCI
+            if len(top_features) >= 1:
+                df_template.loc[0, top_features[0]] = 1.0  # Exemplo de valor numérico
+            if len(top_features) >= 2:
+                df_template.loc[0, top_features[1]] = 2.0
+            df_template.loc[0, 'resultado_final'] = 10.0  # Exemplo de nota
+        else:  # OULAD
+            # Exemplos baseados no dataset OULAD
+            if len(top_features) >= 1:
+                df_template.loc[0, top_features[0]] = 'Pass'  # Exemplo de categoria
+            if len(top_features) >= 2:
+                df_template.loc[0, top_features[1]] = 1.0
+            df_template.loc[0, 'resultado_final'] = 'Pass'
+        
+        return df_template
+        
+    except Exception as e:
+        st.error(f"Erro ao gerar template: {e}")
+        return pd.DataFrame()
+
+def converter_template_para_excel(df_template: pd.DataFrame) -> bytes:
+    """Converte DataFrame template para formato Excel (bytes)"""
+    try:
+        import io
+        
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_template.to_excel(writer, sheet_name='Template', index=False)
+        buffer.seek(0)
+        return buffer.getvalue()
+        
+    except Exception as e:
+        st.error(f"Erro ao converter template para Excel: {e}")
+        return b''
+
+def validar_template_usuario(df_usuario: pd.DataFrame, df_template: pd.DataFrame) -> tuple[bool, str]:
+    """Valida se o template preenchido pelo usuário está correto"""
+    try:
+        # Verificar se tem a coluna resultado_final
+        if 'resultado_final' not in df_usuario.columns:
+            return False, "Coluna 'resultado_final' não encontrada no arquivo"
+        
+        # Verificar se tem as colunas de features esperadas
+        expected_features = [col for col in df_template.columns if col != 'resultado_final']
+        missing_features = [col for col in expected_features if col not in df_usuario.columns]
+        
+        if missing_features:
+            return False, f"Colunas de features esperadas não encontradas: {missing_features}"
+        
+        # Verificar se tem dados (não está vazio)
+        if df_usuario.empty:
+            return False, "Arquivo está vazio"
+        
+        # Verificar se tem pelo menos algumas linhas com dados válidos
+        non_empty_rows = df_usuario.dropna(how='all').shape[0]
+        if non_empty_rows < 3:
+            return False, "Arquivo deve ter pelo menos 3 linhas com dados válidos"
+        
+        return True, "Template válido"
+        
+    except Exception as e:
+        return False, f"Erro na validação: {e}"
+
+def realizar_eda_automatica(df_usuario: pd.DataFrame) -> dict:
+    """Realiza EDA automática no dataset do usuário"""
+    try:
+        from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+        from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+        from sklearn.compose import ColumnTransformer
+        from sklearn.pipeline import Pipeline
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, classification_report
+        from sklearn.inspection import permutation_importance
+        import numpy as np
+        
+        # Preparar dados
+        target_col = 'resultado_final'
+        y = df_usuario[target_col]
+        X = df_usuario.drop(target_col, axis=1)
+        
+        # Detectar tipo de problema (regressão vs classificação)
+        is_regression = pd.api.types.is_numeric_dtype(y) and y.nunique() > 10
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Preparar preprocessamento
+        categorical_features = X_train.select_dtypes(include=['object']).columns
+        numerical_features = X_train.select_dtypes(include=[np.number]).columns
+        
+        # Criar preprocessor
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', 'passthrough', numerical_features),
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+            ]
+        )
+        
+        # Treinar modelo apropriado
+        if is_regression:
+            model = Pipeline(steps=[
+                ('preprocessor', preprocessor),
+                ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))
+            ])
+            y_train_encoded = y_train.astype(float)
+            y_test_encoded = y_test.astype(float)
+        else:
+            model = Pipeline(steps=[
+                ('preprocessor', preprocessor),
+                ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+            ])
+            # Para classificação, usar LabelEncoder se necessário
+            if not pd.api.types.is_numeric_dtype(y_train):
+                le = LabelEncoder()
+                y_train_encoded = le.fit_transform(y_train)
+                y_test_encoded = le.transform(y_test)
+            else:
+                y_train_encoded = y_train
+                y_test_encoded = y_test
+        
+        # Treinar modelo
+        model.fit(X_train, y_train_encoded)
+        
+        # Fazer predições
+        predictions = model.predict(X_test)
+        
+        # Calcular métricas
+        if is_regression:
+            mae = mean_absolute_error(y_test_encoded, predictions)
+            rmse = np.sqrt(mean_squared_error(y_test_encoded, predictions))
+            r2 = r2_score(y_test_encoded, predictions)
+            metrics = {
+                'mae': mae,
+                'rmse': rmse,
+                'r2': r2,
+                'type': 'regression'
+            }
+        else:
+            accuracy = accuracy_score(y_test_encoded, predictions)
+            metrics = {
+                'accuracy': accuracy,
+                'type': 'classification',
+                'classification_report': classification_report(y_test_encoded, predictions, output_dict=True)
+            }
+        
+        # Calcular feature importance
+        try:
+            # Usar permutation importance
+            result = permutation_importance(
+                model, X_test, y_test_encoded, 
+                n_repeats=5, random_state=42, n_jobs=-1
+            )
+            
+            feature_importance = pd.DataFrame({
+                'feature': X_test.columns,
+                'importance': result.importances_mean
+            }).sort_values('importance', ascending=False)
+        except:
+            # Fallback para feature_importances_ do modelo
+            if hasattr(model.named_steps[list(model.named_steps.keys())[-1]], 'feature_importances_'):
+                feature_importance = pd.DataFrame({
+                    'feature': X_test.columns,
+                    'importance': model.named_steps[list(model.named_steps.keys())[-1]].feature_importances_
+                }).sort_values('importance', ascending=False)
+            else:
+                feature_importance = pd.DataFrame()
+        
+        # Estatísticas descritivas
+        stats = {
+            'shape': df_usuario.shape,
+            'missing_values': df_usuario.isnull().sum().to_dict(),
+            'dtypes': df_usuario.dtypes.to_dict(),
+            'numeric_summary': df_usuario.select_dtypes(include=[np.number]).describe().to_dict() if not df_usuario.select_dtypes(include=[np.number]).empty else {},
+            'categorical_summary': df_usuario.select_dtypes(include=['object']).describe().to_dict() if not df_usuario.select_dtypes(include=['object']).empty else {}
+        }
+        
+        return {
+            'model': model,
+            'metrics': metrics,
+            'feature_importance': feature_importance,
+            'predictions': predictions,
+            'y_test': y_test_encoded,
+            'stats': stats,
+            'is_regression': is_regression
+        }
+        
+    except Exception as e:
+        st.error(f"Erro na EDA automática: {e}")
+        return {}
