@@ -1193,6 +1193,129 @@ def criar_secao_pygwalker():
 # FUNÇÕES PARA TEMPLATE DE FEATURE IMPORTANCE
 # =============================================================================
 
+def traduzir_nome_feature(feature: str, dataset_origem: str) -> str:
+    """Traduz nomes de features para português brasileiro"""
+    # Mapeamento de traduções para features comuns
+    traducoes = {
+        # UCI features
+        'failures': 'reprovacoes',
+        'absences': 'faltas',
+        'G1': 'nota_1bim',
+        'G2': 'nota_2bim',
+        'G3': 'nota_final',
+        'studytime': 'tempo_estudo',
+        'goout': 'saidas',
+        'Dalc': 'alcool_dia',
+        'Walc': 'alcool_fds',
+        'freetime': 'tempo_livre',
+        'health': 'saude',
+        'age': 'idade',
+        'sex': 'sexo',
+        'school': 'escola',
+        'address': 'endereco',
+        'famsize': 'tamanho_familia',
+        'Pstatus': 'status_pais',
+        'Medu': 'educacao_mae',
+        'Fedu': 'educacao_pai',
+        'Mjob': 'trabalho_mae',
+        'Fjob': 'trabalho_pai',
+        'reason': 'motivo_escola',
+        'guardian': 'responsavel',
+        'traveltime': 'tempo_viagem',
+        
+        # OULAD features
+        'sum_click': 'cliques',
+        'score': 'pontuacao',
+        'studied_credits': 'creditos_estudados',
+        'num_of_prev_attempts': 'tentativas_anteriores',
+        'date': 'data',
+        'date_submitted': 'data_submissao',
+        'clicks': 'cliques',
+        'final_result': 'resultado_final',
+        'gender': 'genero',
+        'region': 'regiao',
+        'highest_education': 'educacao_superior',
+        'imd_band': 'banda_imd',
+        'age_band': 'faixa_etaria',
+        'disability': 'deficiencia',
+        'activity_type': 'tipo_atividade',
+        'assessment_type': 'tipo_avaliacao',
+        'weight': 'peso',
+        'module_presentation_length': 'duracao_modulo',
+    }
+    
+    # Tentar traduzir, se não existir mapeamento, retornar o original em lowercase
+    return traducoes.get(feature, feature.lower().replace('_', '_'))
+
+def gerar_template_unificado() -> pd.DataFrame:
+    """Gera template unificado com top 3 features de UCI e OULAD"""
+    try:
+        # Get top 3 features from UCI
+        df_importance_uci = calcular_feature_importance_uci()
+        top_features_uci = df_importance_uci.nlargest(3, 'importance')['feature'].tolist() if not df_importance_uci.empty else []
+        
+        # Get top 3 features from OULAD
+        df_importance_oulad = calcular_feature_importance_oulad()
+        top_features_oulad = df_importance_oulad.nlargest(3, 'importance')['feature'].tolist() if not df_importance_oulad.empty else []
+        
+        # Build template with name field first
+        template_data = {'nome_aluno': [''] * 10}
+        
+        # Store mapping for validation later
+        feature_mapping = {}
+        
+        # Add UCI features translated to Portuguese, without prefix
+        for feature in top_features_uci:
+            translated = traduzir_nome_feature(feature, 'uci')
+            # If translation conflicts, add _uci suffix
+            if translated in template_data or translated in feature_mapping:
+                translated = f"{translated}_uci"
+            template_data[translated] = [np.nan] * 10
+            feature_mapping[translated] = ('uci', feature)
+        
+        # Add OULAD features translated to Portuguese, without prefix
+        for feature in top_features_oulad:
+            translated = traduzir_nome_feature(feature, 'oulad')
+            # If translation conflicts, add _oulad suffix
+            if translated in template_data or translated in feature_mapping:
+                translated = f"{translated}_oulad"
+            template_data[translated] = [np.nan] * 10
+            feature_mapping[translated] = ('oulad', feature)
+        
+        # Add result column
+        template_data['resultado_final'] = [np.nan] * 10
+        
+        df_template = pd.DataFrame(template_data)
+        
+        # Add example row with placeholder values
+        df_template.loc[0, 'nome_aluno'] = 'João Silva'
+        
+        # Add example values based on typical feature ranges
+        for col in df_template.columns:
+            if col == 'nome_aluno':
+                continue
+            elif col == 'resultado_final':
+                df_template.loc[0, col] = 'Pass'
+            elif 'reprovacoes' in col or 'faltas' in col or 'tentativas' in col:
+                df_template.loc[0, col] = 0
+            elif 'nota' in col or 'pontuacao' in col:
+                df_template.loc[0, col] = 10.0
+            elif 'cliques' in col or 'creditos' in col:
+                df_template.loc[0, col] = 50
+            elif 'tempo' in col:
+                df_template.loc[0, col] = 2
+            else:
+                df_template.loc[0, col] = 'Exemplo'
+        
+        # Store mapping as metadata (could be saved separately if needed)
+        df_template.attrs['feature_mapping'] = feature_mapping
+        
+        return df_template
+        
+    except Exception as e:
+        st.error(f"Erro ao gerar template unificado: {e}")
+        return pd.DataFrame()
+
 def gerar_template_features(dataset_tipo: str) -> pd.DataFrame:
     """Gera template com as 2 features mais importantes do dataset selecionado"""
     try:
@@ -1256,19 +1379,24 @@ def converter_template_para_excel(df_template: pd.DataFrame) -> bytes:
         st.error(f"Erro ao converter template para Excel: {e}")
         return b''
 
-def validar_template_usuario(df_usuario: pd.DataFrame, df_template: pd.DataFrame) -> tuple[bool, str]:
+def validar_template_usuario(df_usuario: pd.DataFrame, df_template: pd.DataFrame = None) -> tuple[bool, str]:
     """Valida se o template preenchido pelo usuário está correto"""
     try:
         # Verificar se tem a coluna resultado_final
         if 'resultado_final' not in df_usuario.columns:
             return False, "Coluna 'resultado_final' não encontrada no arquivo"
         
-        # Verificar se tem as colunas de features esperadas
-        expected_features = [col for col in df_template.columns if col != 'resultado_final']
-        missing_features = [col for col in expected_features if col not in df_usuario.columns]
+        # Verificar se tem a coluna nome_aluno (para template unificado)
+        if 'nome_aluno' not in df_usuario.columns:
+            return False, "Coluna 'nome_aluno' não encontrada no arquivo"
         
-        if missing_features:
-            return False, f"Colunas de features esperadas não encontradas: {missing_features}"
+        # Se df_template foi fornecido, verificar features específicas
+        if df_template is not None:
+            expected_features = [col for col in df_template.columns if col not in ['resultado_final', 'nome_aluno']]
+            missing_features = [col for col in expected_features if col not in df_usuario.columns]
+            
+            if missing_features:
+                return False, f"Colunas de features esperadas não encontradas: {missing_features}"
         
         # Verificar se tem dados (não está vazio)
         if df_usuario.empty:
@@ -1278,6 +1406,11 @@ def validar_template_usuario(df_usuario: pd.DataFrame, df_template: pd.DataFrame
         non_empty_rows = df_usuario.dropna(how='all').shape[0]
         if non_empty_rows < 3:
             return False, "Arquivo deve ter pelo menos 3 linhas com dados válidos"
+        
+        # Verificar se tem pelo menos algumas features além de nome e resultado
+        feature_cols = [col for col in df_usuario.columns if col not in ['nome_aluno', 'resultado_final']]
+        if len(feature_cols) < 2:
+            return False, "Template deve ter pelo menos 2 features além de nome_aluno e resultado_final"
         
         return True, "Template válido"
         
@@ -1296,10 +1429,10 @@ def realizar_eda_automatica(df_usuario: pd.DataFrame) -> dict:
         from sklearn.inspection import permutation_importance
         import numpy as np
         
-        # Preparar dados
+        # Preparar dados - remover nome_aluno se existir
         target_col = 'resultado_final'
         y = df_usuario[target_col]
-        X = df_usuario.drop(target_col, axis=1)
+        X = df_usuario.drop([target_col, 'nome_aluno'], axis=1, errors='ignore')
         
         # Detectar tipo de problema (regressão vs classificação)
         is_regression = pd.api.types.is_numeric_dtype(y) and y.nunique() > 10
