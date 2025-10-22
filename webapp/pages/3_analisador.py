@@ -15,6 +15,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utilidades import (
     gerar_template_features, 
+    gerar_template_unificado,
     converter_template_para_excel, 
     validar_template_usuario, 
     realizar_eda_automatica
@@ -737,54 +738,60 @@ else:
 
     # --- Feature Importance Template ---
     elif analysis_type == 'Feature Importance Template':
-        st.subheader("🎯 Template de Feature Importance")
+        st.subheader("🎯 Template Unificado de Feature Importance")
         
-        # Seção de seleção de dataset
+        # Seção de informações sobre o template unificado
         col1, col2 = st.columns([2, 1])
         
         with col1:
             st.markdown("""
-            **Como usar:**
-            1. Selecione o dataset base (UCI ou OULAD) para obter as features mais importantes
-            2. Baixe o template Excel com as 2 features mais relevantes
-            3. Preencha o template com seus dados (mantenha a coluna 'resultado_final')
+            **Como usar o Template Unificado:**
+            1. Baixe o template Excel com as features mais importantes dos datasets UCI e OULAD
+            2. Preencha o template com seus dados (incluindo o nome do aluno)
+            3. Mantenha a coluna 'resultado_final' com os resultados esperados
             4. Faça upload do template preenchido para análise automática
+            
+            **Vantagens do Template Unificado:**
+            - Combina insights de educação tradicional (UCI) e online (OULAD)
+            - Inclui campo para nome do aluno para personalização
+            - Análise mais abrangente com features diversificadas
             """)
         
         with col2:
-            dataset_tipo = st.radio(
-                "Dataset base:",
-                ["UCI", "OULAD"],
-                index=0 if st.session_state.template_dataset_type == 'uci' else 1,
-                help="Escolha qual dataset usar como base para as features importantes"
-            )
-            st.session_state.template_dataset_type = dataset_tipo.lower()
+            st.info("""
+            **Template inclui:**
+            - Campo para nome do aluno
+            - Top 3 features do UCI
+            - Top 3 features do OULAD
+            - Coluna de resultado final
+            """)
         
-        # Gerar e baixar template
-        if st.button("📥 Gerar Template", key='generate_template'):
-            with st.spinner("Gerando template..."):
-                df_template = gerar_template_features(st.session_state.template_dataset_type)
+        # Gerar e baixar template unificado
+        if st.button("📥 Gerar Template Unificado", key='generate_unified_template'):
+            with st.spinner("Gerando template unificado..."):
+                df_template = gerar_template_unificado()
                 
                 if not df_template.empty:
                     st.session_state.template_downloaded = True
-                    st.success(f"Template gerado com sucesso! Inclui as features: {', '.join([col for col in df_template.columns if col != 'resultado_final'])}")
+                    feature_cols = [col for col in df_template.columns if col not in ['nome_aluno', 'resultado_final']]
+                    st.success(f"Template unificado gerado com sucesso! Inclui {len(feature_cols)} features: {', '.join(feature_cols)}")
                     
                     # Mostrar preview do template
-                    st.markdown("**Preview do Template:**")
+                    st.markdown("**Preview do Template Unificado:**")
                     st.dataframe(df_template.head(), use_container_width=True)
                     
                     # Botão de download
                     excel_data = converter_template_para_excel(df_template)
                     if excel_data:
                         st.download_button(
-                            label="⬇️ Baixar Template Excel",
+                            label="⬇️ Baixar Template Excel Unificado",
                             data=excel_data,
-                            file_name=f"template_features_{st.session_state.template_dataset_type}.xlsx",
+                            file_name="template_unificado_features.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key='download_template'
+                            key='download_unified_template'
                         )
                 else:
-                    st.error("Erro ao gerar template. Verifique se os dados estão carregados.")
+                    st.error("Erro ao gerar template unificado. Verifique se os dados estão carregados.")
         
         # Seção de upload do template preenchido
         if st.session_state.template_downloaded:
@@ -807,9 +814,8 @@ else:
                     else:
                         df_usuario = pd.read_excel(uploaded_template)
                     
-                    # Validar template
-                    df_template_ref = gerar_template_features(st.session_state.template_dataset_type)
-                    is_valid, validation_msg = validar_template_usuario(df_usuario, df_template_ref)
+                    # Validar template (não precisa de template de referência para unificado)
+                    is_valid, validation_msg = validar_template_usuario(df_usuario)
                     
                     if is_valid:
                         st.success(f"✅ {validation_msg}")
