@@ -746,7 +746,7 @@ else:
         with col1:
             st.markdown("""
             **Como usar o Template Unificado:**
-            1. Baixe o template Excel com as features mais importantes dos datasets UCI e OULAD
+            1. Baixe o template Excel com as **2 features mais importantes** dos datasets UCI e OULAD
             2. Preencha o template com seus dados (incluindo o nome do aluno)
             3. Mantenha a coluna 'resultado_final' com os resultados esperados
             4. Faça upload do template preenchido para análise automática
@@ -755,15 +755,17 @@ else:
             - Combina insights de educação tradicional (UCI) e online (OULAD)
             - Inclui campo para nome do aluno para personalização
             - Análise mais abrangente com features diversificadas
+            - Template otimizado com apenas as features mais relevantes
             """)
         
         with col2:
             st.info("""
             **Template inclui:**
             - Campo para nome do aluno
-            - Top 3 features do UCI
-            - Top 3 features do OULAD
+            - **Top 2 features do UCI**
+            - **Top 2 features do OULAD**
             - Coluna de resultado final
+            - **Total: 6 colunas organizadas logicamente**
             """)
         
         # Gerar e baixar template unificado
