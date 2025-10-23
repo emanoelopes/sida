@@ -1248,15 +1248,15 @@ def traduzir_nome_feature(feature: str, dataset_origem: str) -> str:
     return traducoes.get(feature, feature.lower().replace('_', '_'))
 
 def gerar_template_unificado() -> pd.DataFrame:
-    """Gera template unificado com top 3 features de UCI e OULAD"""
+    """Gera template unificado com TOP 2 features de UCI e OULAD"""
     try:
-        # Get top 3 features from UCI
+        # Get TOP 2 features from UCI (não 3!)
         df_importance_uci = calcular_feature_importance_uci()
-        top_features_uci = df_importance_uci.nlargest(3, 'importance')['feature'].tolist() if not df_importance_uci.empty else []
+        top_features_uci = df_importance_uci.nlargest(2, 'importance')['feature'].tolist() if not df_importance_uci.empty else []
         
-        # Get top 3 features from OULAD
+        # Get TOP 2 features from OULAD (não 3!)
         df_importance_oulad = calcular_feature_importance_oulad()
-        top_features_oulad = df_importance_oulad.nlargest(3, 'importance')['feature'].tolist() if not df_importance_oulad.empty else []
+        top_features_oulad = df_importance_oulad.nlargest(2, 'importance')['feature'].tolist() if not df_importance_oulad.empty else []
         
         # Build template with name field first
         template_data = {'nome_aluno': [''] * 10}
@@ -1543,3 +1543,256 @@ def realizar_eda_automatica(df_usuario: pd.DataFrame) -> dict:
     except Exception as e:
         st.error(f"Erro na EDA automática: {e}")
         return {}
+
+def realizar_analise_completa(df_usuario: pd.DataFrame) -> dict:
+    """
+    Executa análise completa dos dados do usuário
+    Similar às análises feitas em UCI e OULAD
+    """
+    try:
+        resultados = {
+            'eda': realizar_eda_automatica(df_usuario),
+            'graficos': {},
+            'metricas': {}
+        }
+        
+        # Estatísticas descritivas
+        resultados['metricas']['descritivas'] = df_usuario.describe()
+        
+        # Correlações
+        numeric_cols = df_usuario.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 1:
+            resultados['metricas']['correlacao'] = df_usuario[numeric_cols].corr()
+        
+        # Distribuições
+        resultados['graficos']['distribuicoes'] = criar_graficos_distribuicao(df_usuario)
+        
+        # Comparações
+        resultados['graficos']['comparacoes'] = criar_graficos_comparacao(df_usuario)
+        
+        return resultados
+        
+    except Exception as e:
+        st.error(f"Erro na análise completa: {e}")
+        return {}
+
+def criar_graficos_distribuicao(df_usuario: pd.DataFrame) -> dict:
+    """Cria gráficos de distribuição para análise educacional"""
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        graficos = {}
+        
+        # Gráfico de distribuição de resultados
+        if 'resultado_final' in df_usuario.columns:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            # Traduzir valores
+            df_traduzido = df_usuario.copy()
+            df_traduzido['resultado_final'] = df_traduzido['resultado_final'].map({
+                'Pass': 'Aprovados',
+                'Fail': 'Reprovados',
+                'Distinction': 'Com Distinção'
+            })
+            
+            df_traduzido['resultado_final'].value_counts().plot(kind='bar', ax=ax, color=['#28a745', '#dc3545', '#ffc107'])
+            ax.set_title('Distribuição de Resultados da Turma', fontsize=16, fontweight='bold')
+            ax.set_xlabel('Resultado Final')
+            ax.set_ylabel('Quantidade de Alunos')
+            ax.tick_params(axis='x', rotation=45)
+            
+            # Adicionar valores nas barras
+            for i, v in enumerate(df_traduzido['resultado_final'].value_counts()):
+                ax.text(i, v + 0.1, str(v), ha='center', va='bottom', fontweight='bold')
+            
+            plt.tight_layout()
+            graficos['distribuicao_resultados'] = fig
+        
+        return graficos
+        
+    except Exception as e:
+        st.error(f"Erro ao criar gráficos de distribuição: {e}")
+        return {}
+
+def criar_graficos_comparacao(df_usuario: pd.DataFrame) -> dict:
+    """Cria gráficos de comparação entre aprovados e reprovados"""
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        graficos = {}
+        
+        if 'resultado_final' in df_usuario.columns:
+            # Traduzir resultado_final
+            df_traduzido = df_usuario.copy()
+            df_traduzido['resultado_final'] = df_traduzido['resultado_final'].map({
+                'Pass': 'Aprovados',
+                'Fail': 'Reprovados'
+            })
+            
+            # Calcular médias por grupo
+            medias = df_traduzido.groupby('resultado_final').agg({
+                'faltas': 'mean',
+                'nota_2bim': 'mean',
+                'cliques_plataforma': 'mean',
+                'pontuacao_atividades': 'mean'
+            }).round(2)
+            
+            # Criar gráfico de comparação
+            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+            fig.suptitle('Comparação: Aprovados vs Reprovados', fontsize=16, fontweight='bold')
+            
+            # Gráfico 1: Faltas
+            if 'faltas' in medias.columns:
+                medias['faltas'].plot(kind='bar', ax=axes[0,0], color=['#28a745', '#dc3545'])
+                axes[0,0].set_title('Média de Faltas')
+                axes[0,0].set_ylabel('Número de Faltas')
+                axes[0,0].tick_params(axis='x', rotation=0)
+            
+            # Gráfico 2: Notas
+            if 'nota_2bim' in medias.columns:
+                medias['nota_2bim'].plot(kind='bar', ax=axes[0,1], color=['#28a745', '#dc3545'])
+                axes[0,1].set_title('Média das Notas')
+                axes[0,1].set_ylabel('Nota (0-10)')
+                axes[0,1].tick_params(axis='x', rotation=0)
+            
+            # Gráfico 3: Cliques
+            if 'cliques_plataforma' in medias.columns:
+                medias['cliques_plataforma'].plot(kind='bar', ax=axes[1,0], color=['#28a745', '#dc3545'])
+                axes[1,0].set_title('Média de Cliques na Plataforma')
+                axes[1,0].set_ylabel('Número de Cliques')
+                axes[1,0].tick_params(axis='x', rotation=0)
+            
+            # Gráfico 4: Pontuação
+            if 'pontuacao_atividades' in medias.columns:
+                medias['pontuacao_atividades'].plot(kind='bar', ax=axes[1,1], color=['#28a745', '#dc3545'])
+                axes[1,1].set_title('Média de Pontuação nas Atividades')
+                axes[1,1].set_ylabel('Pontuação (0-100)')
+                axes[1,1].tick_params(axis='x', rotation=0)
+            
+            plt.tight_layout()
+            graficos['comparacao_aprovados_reprovados'] = fig
+        
+        return graficos
+        
+    except Exception as e:
+        st.error(f"Erro ao criar gráficos de comparação: {e}")
+        return {}
+
+def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
+    """Exibe resultados com interpretação via OpenAI"""
+    
+    st.markdown("## 📊 Resultados da Análise")
+    
+    # 1. Métricas Gerais
+    st.markdown("### 📈 Métricas Gerais")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total de Alunos", len(df_usuario))
+    with col2:
+        taxa_aprovacao = (df_usuario['resultado_final'] == 'Pass').mean() * 100
+        st.metric("Taxa de Aprovação", f"{taxa_aprovacao:.1f}%")
+    with col3:
+        st.metric("Features Analisadas", len(df_usuario.columns) - 2)
+    
+    # 2. Gráfico de Distribuição + Interpretação IA
+    st.markdown("### 📊 Distribuição de Resultados")
+    if 'distribuicoes' in resultados['graficos'] and 'distribuicao_resultados' in resultados['graficos']['distribuicoes']:
+        fig_dist = resultados['graficos']['distribuicoes']['distribuicao_resultados']
+        st.pyplot(fig_dist)
+        
+        # Interpretação via OpenAI
+        contexto = {
+            'total_alunos': len(df_usuario),
+            'aprovados': (df_usuario['resultado_final'] == 'Pass').sum(),
+            'reprovados': (df_usuario['resultado_final'] == 'Fail').sum()
+        }
+        
+        # Tentar usar OpenAI se disponível
+        try:
+            from .openai_interpreter import interpretar_grafico
+            interpretacao = interpretar_grafico('distribuicao_resultados', contexto)
+            st.info(f"💡 **Interpretação**: {interpretacao}")
+        except:
+            # Fallback para interpretação estática
+            interpretacao = """
+            Este gráfico mostra a distribuição de resultados da turma. 
+            Uma boa distribuição tem mais alunos aprovados que reprovados.
+            Se houver muitos reprovados, considere estratégias de apoio pedagógico.
+            """
+            st.info(f"💡 **Interpretação**: {interpretacao}")
+    
+    # 3. Gráfico de Correlação + Interpretação IA
+    st.markdown("### 🔗 Análise de Correlações")
+    if 'correlacao' in resultados['metricas']:
+        # Criar gráfico de correlação
+        fig_corr = criar_grafico_correlacao_traduzido(resultados['metricas']['correlacao'])
+        st.pyplot(fig_corr)
+        
+        # Interpretação via OpenAI
+        try:
+            from .openai_interpreter import interpretar_grafico
+            top_corr = encontrar_top_correlacoes(resultados['metricas']['correlacao'])
+            interpretacao = interpretar_grafico('correlacao', top_corr)
+            st.info(f"💡 **Interpretação**: {interpretacao}")
+        except:
+            interpretacao = """
+            Este gráfico mostra como diferentes fatores se relacionam. 
+            Cores mais intensas indicam relações mais fortes.
+            Use para identificar quais fatores influenciam o desempenho.
+            """
+            st.info(f"💡 **Interpretação**: {interpretacao}")
+    
+    # 4. Comparação por Aluno
+    st.markdown("### 👥 Análise Individual")
+    st.dataframe(df_usuario)
+
+def criar_grafico_correlacao_traduzido(corr_matrix: pd.DataFrame):
+    """Cria heatmap de correlação com rótulos traduzidos"""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    # Traduzir rótulos das colunas
+    traducao_colunas = {
+        'faltas': 'Faltas',
+        'nota_2bim': 'Nota 2º Bimestre',
+        'cliques_plataforma': 'Cliques na Plataforma',
+        'pontuacao_atividades': 'Pontuação nas Atividades'
+    }
+    
+    # Renomear colunas
+    corr_traduzida = corr_matrix.rename(columns=traducao_colunas, index=traducao_colunas)
+    
+    # Criar gráfico
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
+        corr_traduzida, 
+        annot=True, 
+        cmap='RdYlBu_r', 
+        center=0,
+        square=True,
+        fmt='.2f',
+        cbar_kws={'label': 'Força da Relação'}
+    )
+    
+    ax.set_title('Relação entre Fatores de Desempenho', fontsize=16, fontweight='bold')
+    
+    plt.tight_layout()
+    return fig
+
+def encontrar_top_correlacoes(corr_matrix: pd.DataFrame) -> dict:
+    """Encontra as top correlações para interpretação"""
+    try:
+        # Remover diagonal (correlação de 1.0 com si mesmo)
+        corr_no_diag = corr_matrix.where(~np.eye(len(corr_matrix), dtype=bool))
+        
+        # Encontrar correlações mais altas
+        top_corr = corr_no_diag.stack().nlargest(3)
+        
+        return {
+            'top_correlacoes': top_corr.to_dict(),
+            'num_features': len(corr_matrix.columns)
+        }
+    except:
+        return {'top_correlacoes': {}, 'num_features': 0}
