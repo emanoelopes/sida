@@ -9,15 +9,15 @@ bairros_fortaleza = ["Aldeota", "Amaralina", "Bom Jardim", "Cajazeiras", "Conqui
 
 # Gerando dados aleatórios com nomes únicos
 nomes_unicos = []
+nomes_usados = set()
+
 for i in range(500):
-    nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
-    # Garantir unicidade adicionando número se necessário
-    contador = 1
-    nome_original = nome
-    while nome in nomes_unicos:
-        nome = f"{nome_original} {contador}"
-        contador += 1
-    nomes_unicos.append(nome)
+    while True:
+        nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
+        if nome not in nomes_usados:
+            nomes_usados.add(nome)
+            nomes_unicos.append(nome)
+            break
 
 dados = {
     'nome_aluno': nomes_unicos,
