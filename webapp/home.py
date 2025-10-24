@@ -29,21 +29,21 @@ criar_sidebar_landpage()
 st.title("📊 Sistema de Análise de Dados Educacionais")
 st.markdown("### Análise Inteligente com IA")
 
-# Seção 1: Geração do Template
+# Seção 1: Download do Template
 st.markdown("## 📥 Passo 1: Baixe o Template")
 st.markdown("""
 O template inclui as **2 features mais importantes** identificadas em:
-- **UCI**: Escolas públicas portuguesas
-- **OULAD**: Plataforma de aprendizado online
+- **UCI**: Escolas públicas portuguesas (nota_2bim, faltas)
+- **OULAD**: Plataforma de aprendizado online (pontuacao, regiao)
 """)
 
 col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("""
     **Como usar o Template Unificado:**
-    1. Baixe o template Excel com as features mais importantes dos datasets UCI e OULAD
+    1. Baixe o template Excel pré-gerado com as features mais importantes
     2. Preencha o template com seus dados (incluindo o nome do aluno)
-    3. Mantenha a coluna 'resultado_final' com os resultados esperados
+    3. Use escala 0-10 para 'resultado_final' (padrão brasileiro)
     4. Faça upload do template preenchido para análise automática
     
     **Vantagens do Template Unificado:**
@@ -60,30 +60,34 @@ with col2:
     - Coluna de resultado final
     """)
 
-if st.button("📥 Gerar Template Unificado", type="primary"):
-    with st.spinner("Gerando template..."):
-        df_template = gerar_template_unificado()
+# Botão para download do template pré-gerado
+if st.button("📥 Baixar Template Unificado", type="primary"):
+    import os
+    
+    # Verificar se o arquivo existe
+    template_path = "template_unificado_features.xlsx"
+    if os.path.exists(template_path):
+        st.session_state.template_downloaded = True
         
-        if not df_template.empty:
-            st.session_state.template_downloaded = True
-            feature_cols = [col for col in df_template.columns if col not in ['nome_aluno', 'resultado_final']]
-            st.success(f"✅ Template unificado gerado com sucesso! Inclui {len(feature_cols)} features: {', '.join(feature_cols)}")
-            
-            st.markdown("**Preview do Template Unificado:**")
-            st.dataframe(df_template.head(), use_container_width=True)
-            
-            # Download
-            excel_data = converter_template_para_excel(df_template)
-            if excel_data:
-                st.download_button(
-                    "⬇️ Baixar Template Excel",
-                    data=excel_data,
-                    file_name="template_analise_educacional.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key='download_unified_template'
-                )
-        else:
-            st.error("Erro ao gerar template unificado. Verifique se os dados estão carregados.")
+        # Carregar e mostrar preview
+        df_template = pd.read_excel(template_path)
+        feature_cols = [col for col in df_template.columns if col not in ['nome_aluno', 'resultado_final']]
+        st.success(f"✅ Template unificado disponível! Inclui {len(feature_cols)} features: {', '.join(feature_cols)}")
+        
+        st.markdown("**Preview do Template Unificado:**")
+        st.dataframe(df_template.head(), use_container_width=True)
+        
+        # Download do arquivo
+        with open(template_path, "rb") as file:
+            st.download_button(
+                "⬇️ Baixar Template Excel",
+                data=file.read(),
+                file_name="template_analise_educacional.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key='download_unified_template'
+            )
+    else:
+        st.error("❌ Template não encontrado. Execute o sistema para gerar o template.")
 
 # Seção 2: Upload e Análise
 st.markdown("## 📤 Passo 2: Envie o Template Preenchido")
