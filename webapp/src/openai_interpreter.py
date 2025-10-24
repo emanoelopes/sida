@@ -6,39 +6,117 @@ Gera insights em linguagem acessível para educadores
 import streamlit as st
 import openai
 from typing import Dict, Any
+import time
+
+def verificar_api_key(api_key: str) -> bool:
+    """Verifica se a chave da API OpenAI é válida testando uma chamada simples"""
+    try:
+        # Usar o cliente OpenAI moderno
+        client = openai.OpenAI(api_key=api_key)
+        
+        # Fazer uma chamada de teste simples
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "Teste"}],
+            max_tokens=5,
+            temperature=0.1
+        )
+        
+        # Se chegou até aqui, a chave é válida
+        return True
+        
+    except Exception as e:
+        # Capturar qualquer erro (AuthenticationError, RateLimitError, etc.)
+        return False
+
+def inicializar_estado_api():
+    """Inicializa o estado da API se necessário"""
+    if 'openai_key' in st.session_state and 'api_valida' not in st.session_state:
+        st.session_state.api_valida = False
 
 def configurar_openai_key():
     """Permite usuário configurar sua própria chave OpenAI"""
+    # Inicializar estado se necessário
+    inicializar_estado_api()
+    
     with st.sidebar:
         st.markdown("### 🔑 Configuração OpenAI")
         st.markdown("*Para interpretação automática dos gráficos*")
         
-        api_key = st.text_input(
-            "Cole sua API Key:",
-            type="password",
-            placeholder="sk-...",
-            help="Obtenha sua chave em https://platform.openai.com/api-keys"
+        # Opção para desabilitar IA
+        usar_ia = st.checkbox(
+            "🤖 Usar IA para interpretação dos gráficos",
+            value=True,
+            help="Desmarque se preferir interpretações estáticas"
         )
         
-        if st.button("💾 Salvar Chave", type="primary"):
-            if api_key and api_key.startswith('sk-'):
-                st.session_state.openai_key = api_key
-                openai.api_key = api_key
-                st.success("✅ Chave salva com sucesso!")
-            else:
-                st.error("❌ Chave inválida. Deve começar com 'sk-'")
+        if usar_ia:
+            api_key = st.text_input(
+                "Cole sua API Key:",
+                type="password",
+                placeholder="sk-...",
+                help="Obtenha sua chave em https://platform.openai.com/api-keys"
+            )
+            
+            if st.button("💾 Salvar Chave", type="primary"):
+                if api_key and api_key.startswith('sk-'):
+                    # Verificar se a chave é válida testando a API
+                    with st.spinner("🔍 Verificando chave da API..."):
+                        is_valid = verificar_api_key(api_key)
+                        if is_valid:
+                            st.session_state.openai_key = api_key
+                            st.session_state.api_valida = True
+                            st.session_state.interpretacoes_cache = {}  # Limpar cache
+                            st.success("✅ Chave válida e salva com sucesso!")
+                            # Forçar atualização da página
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.session_state.api_valida = False
+                            st.error("❌ Chave inválida ou sem créditos. Verifique sua API key.")
+                else:
+                    st.error("❌ Chave inválida. Deve começar com 'sk-'")
+            
+            if 'openai_key' in st.session_state:
+                if st.session_state.get('api_valida', False):
+                    st.success("🔓 Chave OpenAI válida e ativa")
+                else:
+                    st.warning("⚠️ Chave OpenAI configurada mas não testada")
+                    if st.button("🔄 Testar Chave Novamente", type="secondary"):
+                        with st.spinner("🔍 Testando chave existente..."):
+                            if verificar_api_key(st.session_state.openai_key):
+                                st.session_state.api_valida = True
+                                st.success("✅ Chave validada com sucesso!")
+                                st.rerun()
+                            else:
+                                st.session_state.api_valida = False
+                                st.error("❌ Chave inválida. Configure uma nova chave.")
+        else:
+            st.info("📝 Interpretações estáticas serão usadas")
+            # Limpar chave se desabilitado
+            if 'openai_key' in st.session_state:
+                del st.session_state.openai_key
         
-        if 'openai_key' in st.session_state:
-            st.info("🔓 Chave OpenAI configurada")
+        # Salvar preferência do usuário
+        st.session_state.usar_ia = usar_ia
         
         st.markdown("---")
         st.markdown("#### 💡 Como usar:")
-        st.markdown("""
-        1. Configure sua chave OpenAI acima
-        2. Baixe o template Excel
-        3. Preencha com dados dos alunos
-        4. Faça upload para análise
-        """)
+        if usar_ia:
+            st.markdown("""
+            1. ✅ Configure sua chave OpenAI acima
+            2. 📥 Baixe o template Excel
+            3. 📝 Preencha com dados dos alunos
+            4. 📤 Faça upload para análise
+            5. 🤖 Receba interpretações automáticas
+            """)
+        else:
+            st.markdown("""
+            1. 📥 Baixe o template Excel
+            2. 📝 Preencha com dados dos alunos
+            3. 📤 Faça upload para análise
+            4. 📊 Visualize gráficos e métricas
+            """)
         
         # Rodapé padrão
         st.markdown("---")
@@ -56,7 +134,7 @@ def configurar_openai_key():
 
 def interpretar_grafico(tipo_grafico: str, dados_contexto: Dict[str, Any]) -> str:
     """
-    Gera interpretação do gráfico via OpenAI
+    Gera interpretação do gráfico via OpenAI com cache inteligente
     
     Args:
         tipo_grafico: 'distribuicao', 'correlacao', 'comparacao', etc.
@@ -68,8 +146,23 @@ def interpretar_grafico(tipo_grafico: str, dados_contexto: Dict[str, Any]) -> st
     if 'openai_key' not in st.session_state:
         return "⚠️ Configure sua chave OpenAI na sidebar para interpretação automática."
     
+    # Verificar se API é válida
+    if not st.session_state.get('api_valida', False):
+        return "⚠️ Chave OpenAI não foi testada. Configure uma chave válida na sidebar."
+    
+    # Inicializar cache se não existir
+    if 'interpretacoes_cache' not in st.session_state:
+        st.session_state.interpretacoes_cache = {}
+    
+    # Criar chave única para o cache baseada no tipo e dados
+    cache_key = f"{tipo_grafico}_{hash(str(dados_contexto))}"
+    
+    # Verificar se já existe no cache
+    if cache_key in st.session_state.interpretacoes_cache:
+        return st.session_state.interpretacoes_cache[cache_key]
+    
     # Configurar OpenAI
-    openai.api_key = st.session_state.openai_key
+    client = openai.OpenAI(api_key=st.session_state.openai_key)
     
     prompt = f"""
     Você é um especialista em análise educacional. Interprete o seguinte gráfico
@@ -87,13 +180,20 @@ def interpretar_grafico(tipo_grafico: str, dados_contexto: Dict[str, Any]) -> st
     """
     
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7
         )
-        return response.choices[0].message.content
+        
+        interpretacao = response.choices[0].message.content
+        
+        # Salvar no cache
+        st.session_state.interpretacoes_cache[cache_key] = interpretacao
+        
+        return interpretacao
+        
     except Exception as e:
         return f"⚠️ Erro ao gerar interpretação: {str(e)}"
 
