@@ -137,9 +137,7 @@ if uploaded_file:
 # Seção 3: Resultados (se disponíveis)
 if 'analise_resultados' in st.session_state and 'user_data_uploaded' in st.session_state:
     st.markdown("---")
-    st.markdown("## 📊 Resultados da Análise")
-    
-    # Exibir resultados salvos
+    # Exibir resultados salvos (título já está na função exibir_resultados_com_ia)
     exibir_resultados_com_ia(st.session_state.analise_resultados, st.session_state.user_data_uploaded)
 
 # Rodapé informativo

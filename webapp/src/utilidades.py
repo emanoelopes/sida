@@ -1748,14 +1748,23 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
     
     # 1. Métricas Gerais
     st.markdown("### 📈 Métricas Gerais")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total de Alunos", len(df_usuario))
     with col2:
         taxa_aprovacao = (df_usuario['resultado_final'] >= 5.0).mean() * 100  # Aprovação >= 5.0
         st.metric("Taxa de Aprovação", f"{taxa_aprovacao:.1f}%")
     with col3:
-        st.metric("Features Analisadas", len(df_usuario.columns) - 2)
+        # Calcular média das faltas (se a coluna existir)
+        if 'faltas' in df_usuario.columns:
+            media_faltas = df_usuario['faltas'].mean()
+            st.metric("Média das Faltas", f"{media_faltas:.1f}")
+        else:
+            st.metric("Média das Faltas", "N/A")
+    with col4:
+        # Calcular média das notas finais
+        media_notas = df_usuario['resultado_final'].mean()
+        st.metric("Média das Notas Finais", f"{media_notas:.1f}")
     
     # 2. Gráfico de Distribuição + Interpretação IA
     st.markdown("### 📊 Distribuição de Resultados")
@@ -1806,44 +1815,201 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
             """
             st.info(f"💡 **Interpretação**: {interpretacao}")
     
-    # 3. Gráfico de Correlação + Interpretação IA
-    st.markdown("### 🔗 Análise de Correlações")
-    if 'correlacao' in resultados['metricas']:
-        # Criar gráfico de correlação
-        fig_corr = criar_grafico_correlacao_traduzido(resultados['metricas']['correlacao'])
-        st.pyplot(fig_corr)
+    # Histograma de Distribuição das Notas Finais
+    st.markdown("### 📊 Histograma de Distribuição das Notas Finais")
+    if 'resultado_final' in df_usuario.columns:
+        fig_hist, ax_hist = plt.subplots(figsize=(12, 6))
         
-        # Interpretação via OpenAI
+        # Criar histograma com KDE
+        sns.histplot(df_usuario['resultado_final'], bins=20, kde=True, ax=ax_hist, 
+                    color='#3498db', alpha=0.7, edgecolor='black', linewidth=1)
+        
+        # Adicionar linha vertical para média
+        media_notas = df_usuario['resultado_final'].mean()
+        ax_hist.axvline(media_notas, color='red', linestyle='--', linewidth=2, 
+                       label=f'Média: {media_notas:.2f}')
+        
+        # Adicionar linha vertical para mediana
+        mediana_notas = df_usuario['resultado_final'].median()
+        ax_hist.axvline(mediana_notas, color='orange', linestyle='--', linewidth=2, 
+                       label=f'Mediana: {mediana_notas:.2f}')
+        
+        # Adicionar linha vertical para nota de corte (5.0)
+        ax_hist.axvline(5.0, color='green', linestyle='-', linewidth=2, 
+                       label='Nota de Corte (5.0)')
+        
+        # Configurar gráfico
+        ax_hist.set_title('Distribuição das Notas Finais - Histograma', 
+                         fontsize=16, fontweight='bold', pad=20)
+        ax_hist.set_xlabel('Nota Final (0-10)', fontsize=14, fontweight='bold')
+        ax_hist.set_ylabel('Frequência', fontsize=14, fontweight='bold')
+        ax_hist.legend(fontsize=12)
+        ax_hist.grid(True, alpha=0.3)
+        ax_hist.set_xlim(0, 10)
+        
+        # Adicionar estatísticas no gráfico
+        stats_text = f"""
+📊 ESTATÍSTICAS:
+• Média: {media_notas:.2f}
+• Mediana: {mediana_notas:.2f}
+• Desvio Padrão: {df_usuario['resultado_final'].std():.2f}
+• Mínimo: {df_usuario['resultado_final'].min():.2f}
+• Máximo: {df_usuario['resultado_final'].max():.2f}
+• Aprovados (≥5.0): {((df_usuario['resultado_final'] >= 5.0).sum() / len(df_usuario) * 100):.1f}%
+        """
+        
+        # Adicionar caixa de estatísticas
+        ax_hist.text(0.02, 0.98, stats_text, transform=ax_hist.transAxes, 
+                    fontsize=10, verticalalignment='top',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor='lightblue', alpha=0.8))
+        
+        plt.tight_layout()
+        st.pyplot(fig_hist)
+        
+        # Interpretação do histograma
+        contexto_hist = {
+            'media': media_notas,
+            'mediana': mediana_notas,
+            'desvio_padrao': df_usuario['resultado_final'].std(),
+            'aprovados_pct': (df_usuario['resultado_final'] >= 5.0).mean() * 100,
+            'distribuicao': 'normal' if abs(media_notas - mediana_notas) < 0.5 else 'assimétrica'
+        }
+        
+        # Verificar se usuário quer usar IA
+        usar_ia = st.session_state.get('usar_ia', True)
+        
+        if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+            # Usar OpenAI se disponível e válida
+            try:
+                from .openai_interpreter import interpretar_grafico
+                interpretacao_hist = interpretar_grafico('histograma_notas', contexto_hist)
+                st.info(f"💡 **Interpretação IA**: {interpretacao_hist}")
+            except Exception as e:
+                # Fallback para interpretação estática
+                interpretacao_hist = f"""
+                Este histograma mostra a distribuição das notas finais da turma. 
+                A média de {media_notas:.2f} e mediana de {mediana_notas:.2f} indicam o desempenho central.
+                {((df_usuario['resultado_final'] >= 5.0).sum() / len(df_usuario) * 100):.1f}% dos alunos foram aprovados.
+                """
+                st.info(f"💡 **Interpretação**: {interpretacao_hist}")
+        elif usar_ia and 'openai_key' in st.session_state and not st.session_state.get('api_valida', False):
+            # API configurada mas não testada
+            st.warning("⚠️ Chave OpenAI configurada mas não testada. Teste a chave na sidebar.")
+            interpretacao_hist = f"""
+            Este histograma mostra a distribuição das notas finais da turma. 
+            A média de {media_notas:.2f} e mediana de {mediana_notas:.2f} indicam o desempenho central.
+            {((df_usuario['resultado_final'] >= 5.0).sum() / len(df_usuario) * 100):.1f}% dos alunos foram aprovados.
+            """
+            st.info(f"💡 **Interpretação**: {interpretacao_hist}")
+        else:
+            # Interpretação estática
+            interpretacao_hist = f"""
+            Este histograma mostra a distribuição das notas finais da turma. 
+            A média de {media_notas:.2f} e mediana de {mediana_notas:.2f} indicam o desempenho central.
+            {((df_usuario['resultado_final'] >= 5.0).sum() / len(df_usuario) * 100):.1f}% dos alunos foram aprovados.
+            """
+            st.info(f"💡 **Interpretação**: {interpretacao_hist}")
+    
+    # 3. Gráficos de Distribuição Numérica
+    st.markdown("### 📊 Distribuições Numéricas")
+    
+    # Criar gráficos de distribuição
+    graficos_distribuicao = criar_graficos_distribuicao_numerica(df_usuario)
+    
+    if graficos_distribuicao:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if 'distribuicao_faltas' in graficos_distribuicao:
+                st.pyplot(graficos_distribuicao['distribuicao_faltas'])
+                
+                # Interpretação das faltas
+                if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+                    try:
+                        from .openai_interpreter import interpretar_grafico
+                        contexto_faltas = {
+                            'media_faltas': df_usuario['faltas'].mean() if 'faltas' in df_usuario.columns else 0,
+                            'total_alunos': len(df_usuario)
+                        }
+                        interpretacao = interpretar_grafico('distribuicao_faltas', contexto_faltas)
+                        st.info(f"💡 **Interpretação IA**: {interpretacao}")
+                    except:
+                        interpretacao = """
+                        Este gráfico mostra a distribuição de faltas da turma. 
+                        Muitas faltas podem indicar problemas de frequência ou engajamento.
+                        Considere estratégias de acompanhamento para alunos com muitas faltas.
+                        """
+                        st.info(f"💡 **Interpretação**: {interpretacao}")
+                else:
+                    interpretacao = """
+                    Este gráfico mostra a distribuição de faltas da turma. 
+                    Muitas faltas podem indicar problemas de frequência ou engajamento.
+                    Considere estratégias de acompanhamento para alunos com muitas faltas.
+                    """
+                    st.info(f"💡 **Interpretação**: {interpretacao}")
+        
+        with col2:
+            if 'distribuicao_nota_2bim' in graficos_distribuicao:
+                st.pyplot(graficos_distribuicao['distribuicao_nota_2bim'])
+                
+                # Interpretação da nota do 2º bimestre
+                if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+                    try:
+                        from .openai_interpreter import interpretar_grafico
+                        contexto_nota = {
+                            'media_nota_2bim': df_usuario['nota_2bim'].mean() if 'nota_2bim' in df_usuario.columns else 0,
+                            'total_alunos': len(df_usuario)
+                        }
+                        interpretacao = interpretar_grafico('distribuicao_nota_2bim', contexto_nota)
+                        st.info(f"💡 **Interpretação IA**: {interpretacao}")
+                    except:
+                        interpretacao = """
+                        Este gráfico mostra a distribuição das notas do 2º bimestre. 
+                        Notas baixas podem indicar necessidade de reforço pedagógico.
+                        Use para identificar alunos que precisam de apoio adicional.
+                        """
+                        st.info(f"💡 **Interpretação**: {interpretacao}")
+                else:
+                    interpretacao = """
+                    Este gráfico mostra a distribuição das notas do 2º bimestre. 
+                    Notas baixas podem indicar necessidade de reforço pedagógico.
+                    Use para identificar alunos que precisam de apoio adicional.
+                    """
+                    st.info(f"💡 **Interpretação**: {interpretacao}")
+    
+    # 4. Gráfico de Linhas - Análise por Região
+    st.markdown("### 📊 Análise por Região - Média das Notas Finais")
+    grafico_linhas = criar_grafico_barras_empilhadas(df_usuario)
+    if grafico_linhas:
+        st.pyplot(grafico_linhas)
+        
+        # Interpretação do gráfico de linhas
         if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
             try:
                 from .openai_interpreter import interpretar_grafico
-                top_corr = encontrar_top_correlacoes(resultados['metricas']['correlacao'])
-                interpretacao = interpretar_grafico('correlacao', top_corr)
+                contexto_linhas = {
+                    'regioes': df_usuario['regiao'].unique().tolist() if 'regiao' in df_usuario.columns else [],
+                    'total_alunos': len(df_usuario),
+                    'media_geral': df_usuario['resultado_final'].mean()
+                }
+                interpretacao = interpretar_grafico('grafico_linhas_regiao', contexto_linhas)
                 st.info(f"💡 **Interpretação IA**: {interpretacao}")
-            except Exception as e:
+            except:
                 interpretacao = """
-                Este gráfico mostra como diferentes fatores se relacionam. 
-                Cores mais intensas indicam relações mais fortes.
-                Use para identificar quais fatores influenciam o desempenho.
+                Este gráfico mostra a média das notas finais por região, categorizada por nível de faltas.
+                Linhas mais altas indicam melhor desempenho. Use para identificar padrões regionais
+                e a relação entre frequência e desempenho acadêmico.
                 """
                 st.info(f"💡 **Interpretação**: {interpretacao}")
-        elif usar_ia and 'openai_key' in st.session_state and not st.session_state.get('api_valida', False):
-            st.warning("⚠️ Chave OpenAI configurada mas não testada. Teste a chave na sidebar.")
-            interpretacao = """
-            Este gráfico mostra como diferentes fatores se relacionam. 
-            Cores mais intensas indicam relações mais fortes.
-            Use para identificar quais fatores influenciam o desempenho.
-            """
-            st.info(f"💡 **Interpretação**: {interpretacao}")
         else:
             interpretacao = """
-            Este gráfico mostra como diferentes fatores se relacionam. 
-            Cores mais intensas indicam relações mais fortes.
-            Use para identificar quais fatores influenciam o desempenho.
+            Este gráfico mostra a média das notas finais por região, categorizada por nível de faltas.
+            Linhas mais altas indicam melhor desempenho. Use para identificar padrões regionais
+            e a relação entre frequência e desempenho acadêmico.
             """
             st.info(f"💡 **Interpretação**: {interpretacao}")
     
-    # 4. Gráfico Radar - Comparação Individual
+    # 5. Gráfico Radar - Comparação Individual
     st.markdown("### 🎯 Análise Individual - Gráfico Radar")
     
     # Campo de busca para seleção do aluno
@@ -1953,3 +2119,235 @@ def encontrar_top_correlacoes(corr_matrix: pd.DataFrame) -> dict:
         }
     except:
         return {'top_correlacoes': {}, 'num_features': 0}
+
+def criar_graficos_distribuicao_numerica(df_usuario: pd.DataFrame) -> dict:
+    """Cria gráficos de distribuição otimizados para análise educacional"""
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        import numpy as np
+        import pandas as pd
+        
+        graficos = {}
+        
+        # 1. GRÁFICO DE FALTAS - Linha (Faltas vs Nota Final) + Violin Plot
+        if 'faltas' in df_usuario.columns and 'resultado_final' in df_usuario.columns:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+            
+            # Gráfico de Linha - Relação entre faltas e nota final
+            # Agrupar por número de faltas e calcular média das notas
+            df_agrupado = df_usuario.groupby('faltas')['resultado_final'].agg(['mean', 'count']).reset_index()
+            df_agrupado = df_agrupado[df_agrupado['count'] >= 1]  # Pelo menos 1 aluno
+            
+            # Plotar linha principal
+            ax1.plot(df_agrupado['faltas'], df_agrupado['mean'], 
+                    marker='o', linewidth=3, markersize=8, 
+                    color='#e74c3c', alpha=0.8, label='Média das Notas')
+            
+            # Adicionar pontos individuais (transparentes para mostrar densidade)
+            ax1.scatter(df_usuario['faltas'], df_usuario['resultado_final'], 
+                       alpha=0.3, s=30, color='#3498db', label='Alunos individuais')
+            
+            # Linha de tendência
+            z = np.polyfit(df_usuario['faltas'], df_usuario['resultado_final'], 1)
+            p = np.poly1d(z)
+            x_trend = np.linspace(df_usuario['faltas'].min(), df_usuario['faltas'].max(), 100)
+            ax1.plot(x_trend, p(x_trend), '--', color='#2c3e50', linewidth=2, alpha=0.7,
+                    label=f'Tendência (R²={np.corrcoef(df_usuario["faltas"], df_usuario["resultado_final"])[0,1]**2:.2f})')
+            
+            ax1.set_title('Relação: Faltas vs Nota Final', fontsize=14, fontweight='bold')
+            ax1.set_xlabel('Número de Faltas', fontsize=12)
+            ax1.set_ylabel('Nota Final', fontsize=12)
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            ax1.set_ylim(0, 10)
+            
+            # Adicionar valores nos pontos principais
+            for i, row in df_agrupado.iterrows():
+                if row['count'] > 1:  # Só mostrar valores onde há múltiplos alunos
+                    ax1.annotate(f'{row["mean"]:.1f}\n(n={int(row["count"])})', 
+                               (row['faltas'], row['mean']), 
+                               textcoords="offset points", 
+                               xytext=(0,15), 
+                               ha='center', 
+                               fontsize=9, 
+                               fontweight='bold',
+                               bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+            
+            # Violin Plot - Mostra densidade da distribuição
+            violin_parts = ax2.violinplot([df_usuario['faltas']], positions=[1], 
+                                         showmeans=True, showmedians=True)
+            violin_parts['bodies'][0].set_facecolor('#ff6b6b')
+            violin_parts['bodies'][0].set_alpha(0.7)
+            ax2.set_title('Densidade de Faltas - Violin Plot', fontsize=14, fontweight='bold')
+            ax2.set_ylabel('Número de Faltas', fontsize=12)
+            ax2.set_xticks([1])
+            ax2.set_xticklabels(['Faltas'])
+            ax2.grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            graficos['distribuicao_faltas'] = fig
+        
+        # 2. GRÁFICO DE NOTA 2º BIMESTRE - Scatter Plot + Regressão
+        if 'nota_2bim' in df_usuario.columns and 'resultado_final' in df_usuario.columns:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+            
+            # Scatter Plot - Relação entre nota 2º bimestre e nota final
+            scatter = ax1.scatter(df_usuario['nota_2bim'], df_usuario['resultado_final'], 
+                                alpha=0.6, c='#4ecdc4', s=50, edgecolors='black', linewidth=0.5)
+            
+            # Linha de regressão
+            z = np.polyfit(df_usuario['nota_2bim'], df_usuario['resultado_final'], 1)
+            p = np.poly1d(z)
+            ax1.plot(df_usuario['nota_2bim'], p(df_usuario['nota_2bim']), 
+                    "r--", alpha=0.8, linewidth=2, label=f'Tendência (R²={np.corrcoef(df_usuario["nota_2bim"], df_usuario["resultado_final"])[0,1]**2:.2f})')
+            
+            ax1.set_title('Relação: Nota 2º Bimestre vs Nota Final', fontsize=14, fontweight='bold')
+            ax1.set_xlabel('Nota do 2º Bimestre', fontsize=12)
+            ax1.set_ylabel('Nota Final', fontsize=12)
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            
+            # Gráfico de Pizza com Insights Estatísticos
+            # Criar categorias para notas do 2º bimestre
+            df_usuario['categoria_2bim'] = pd.cut(
+                df_usuario['nota_2bim'], 
+                bins=[0, 5, 7, 10], 
+                labels=['Insuficiente (0-5)', 'Regular (5-7)', 'Bom (7-10)'],
+                include_lowest=True
+            )
+            
+            contagem_categorias = df_usuario['categoria_2bim'].value_counts()
+            cores_categorias = ['#e74c3c', '#f39c12', '#2ecc71']  # Vermelho, laranja, verde
+            
+            # Calcular percentuais e estatísticas
+            total_alunos = len(df_usuario)
+            percentuais = (contagem_categorias / total_alunos * 100).round(1)
+            
+            # Criar gráfico de pizza
+            wedges, texts, autotexts = ax2.pie(contagem_categorias.values, 
+                                              labels=contagem_categorias.index,
+                                              colors=cores_categorias,
+                                              autopct='%1.1f%%',
+                                              startangle=90,
+                                              explode=(0.05, 0.05, 0.05),  # Separar fatias
+                                              textprops={'fontsize': 10, 'fontweight': 'bold'})
+            
+            # Melhorar aparência dos textos
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontweight('bold')
+                autotext.set_fontsize(11)
+            
+            ax2.set_title('Distribuição por Categoria - 2º Bimestre\n(Com Insights Estatísticos)', 
+                         fontsize=14, fontweight='bold', pad=20)
+            
+            # Adicionar caixa de estatísticas
+            stats_text = f"""
+📊 ESTATÍSTICAS:
+• Total de Alunos: {total_alunos}
+• Insuficiente: {contagem_categorias.get('Insuficiente (0-5)', 0)} ({percentuais.get('Insuficiente (0-5)', 0):.1f}%)
+• Regular: {contagem_categorias.get('Regular (5-7)', 0)} ({percentuais.get('Regular (5-7)', 0):.1f}%)
+• Bom: {contagem_categorias.get('Bom (7-10)', 0)} ({percentuais.get('Bom (7-10)', 0):.1f}%)
+
+🎯 INSIGHTS:
+• Taxa de Aprovação: {((contagem_categorias.get('Regular (5-7)', 0) + contagem_categorias.get('Bom (7-10)', 0)) / total_alunos * 100):.1f}%
+• Necessita Intervenção: {contagem_categorias.get('Insuficiente (0-5)', 0)} alunos
+            """
+            
+            # Adicionar texto de estatísticas ao lado do gráfico
+            ax2.text(1.3, 0.5, stats_text, transform=ax2.transAxes, 
+                    fontsize=9, verticalalignment='center',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor='lightblue', alpha=0.8))
+            
+            plt.tight_layout()
+            graficos['distribuicao_nota_2bim'] = fig
+        
+        return graficos
+        
+    except Exception as e:
+        st.error(f"Erro ao criar gráficos de distribuição numérica: {e}")
+        return {}
+
+def criar_grafico_barras_empilhadas(df_usuario: pd.DataFrame):
+    """Cria gráfico de linhas mostrando média das notas finais por região e categoria de faltas"""
+    try:
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import numpy as np
+        
+        # Verificar se as colunas necessárias existem
+        if 'regiao' not in df_usuario.columns or 'resultado_final' not in df_usuario.columns:
+            return None
+        
+        # Preparar dados
+        df_plot = df_usuario.copy()
+        
+        # Criar categorias para faltas
+        if 'faltas' in df_usuario.columns:
+            df_plot['categoria_faltas'] = pd.cut(
+                df_plot['faltas'], 
+                bins=[0, 2, 5, 10], 
+                labels=['Baixas (0-2)', 'Médias (2-5)', 'Altas (5+)'],
+                include_lowest=True
+            )
+        else:
+            df_plot['categoria_faltas'] = 'N/A'
+        
+        # Calcular média das notas finais por região e categoria de faltas
+        media_por_categoria = df_plot.groupby(['regiao', 'categoria_faltas'])['resultado_final'].mean().unstack(fill_value=0)
+        
+        # Criar gráfico de linhas
+        fig, ax = plt.subplots(figsize=(14, 8))
+        
+        # Cores e estilos para as linhas
+        cores = ['#2ecc71', '#f39c12', '#e74c3c']  # Verde, laranja, vermelho
+        estilos = ['-', '--', '-.']  # Linha sólida, tracejada, ponto-traço
+        marcadores = ['o', 's', '^']  # Círculo, quadrado, triângulo
+        
+        # Plotar linhas para cada categoria de faltas
+        for i, categoria in enumerate(media_por_categoria.columns):
+            if categoria in media_por_categoria.columns and not media_por_categoria[categoria].isna().all():
+                ax.plot(media_por_categoria.index, media_por_categoria[categoria], 
+                       color=cores[i % len(cores)], 
+                       linestyle=estilos[i % len(estilos)],
+                       marker=marcadores[i % len(marcadores)],
+                       linewidth=3, markersize=8, alpha=0.8,
+                       label=f'{categoria} (Média: {media_por_categoria[categoria].mean():.1f})')
+        
+        # Configurar gráfico
+        ax.set_title('Média das Notas Finais por Região e Categoria de Faltas', 
+                    fontsize=16, fontweight='bold', pad=20)
+        ax.set_xlabel('Região', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Média das Notas Finais (0-10)', fontsize=14, fontweight='bold')
+        ax.legend(title='Categoria de Faltas', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
+        
+        # Configurar eixo Y para escala 0-10
+        ax.set_ylim(0, 10)
+        ax.set_yticks(range(0, 11, 2))
+        
+        # Rotacionar labels do eixo x se necessário
+        plt.xticks(rotation=45, ha='right')
+        
+        # Adicionar valores nos pontos
+        for categoria in media_por_categoria.columns:
+            if categoria in media_por_categoria.columns:
+                for i, regiao in enumerate(media_por_categoria.index):
+                    valor = media_por_categoria.loc[regiao, categoria]
+                    if not pd.isna(valor) and valor > 0:
+                        ax.annotate(f'{valor:.1f}', 
+                                 (i, valor), 
+                                 textcoords="offset points", 
+                                 xytext=(0,10), 
+                                 ha='center', 
+                                 fontsize=9, 
+                                 fontweight='bold',
+                                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+        
+        plt.tight_layout()
+        return fig
+        
+    except Exception as e:
+        st.error(f"Erro ao criar gráfico de linhas: {e}")
+        return None
