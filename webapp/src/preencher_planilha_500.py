@@ -2,22 +2,53 @@ import pandas as pd
 import random
 import os
 
-# Lista de nomes comuns no Brasil
-nomes = ["João", "Maria", "Pedro", "Ana", "Carlos", "Lúcia", "Marcos", "Clara", "Rafael", "Sandra"]
-sobrenomes = ["Silva", "Santos", "Oliveira", "Pereira", "Ferreira", "Rodrigues", "Almeida", "Costa", "Gonçalves", "Lima"]
+# Lista expandida de nomes comuns no Brasil
+nomes = ["João", "Maria", "Pedro", "Ana", "Carlos", "Lúcia", "Marcos", "Clara", "Rafael", "Sandra",
+         "José", "Antônio", "Francisco", "Paulo", "Fernando", "Roberto", "Ricardo", "Eduardo", "Márcio", "Felipe",
+         "Lucas", "Gabriel", "Bruno", "Diego", "André", "Thiago", "Rodrigo", "Leandro", "Alexandre", "Daniel",
+         "Ana", "Juliana", "Camila", "Patrícia", "Aline", "Sandra", "Fernanda", "Beatriz", "Juliana", "Larissa",
+         "Amanda", "Natália", "Vanessa", "Mariana", "Letícia", "Bianca", "Cristina", "Renata", "Simone", "Tatiana"]
+
+# Lista expandida de sobrenomes
+sobrenomes = ["Silva", "Santos", "Oliveira", "Pereira", "Ferreira", "Rodrigues", "Almeida", "Costa", "Gonçalves", "Lima",
+              "Araújo", "Barbosa", "Cardoso", "Dias", "Fernandes", "Gomes", "Henrique", "Inácio", "Jesus", "Klein",
+              "Machado", "Nascimento", "Oliveira", "Pinto", "Queiroz", "Ribeiro", "Souza", "Teixeira", "Vieira", "Xavier",
+              "Yamamoto", "Zimmermann", "Andrade", "Brito", "Cavalcanti", "Duarte", "Espinosa", "Freitas", "Guimarães", "Hoffmann"]
 bairros_fortaleza = ["Aldeota", "Amaralina", "Bom Jardim", "Cajazeiras", "Conquista", "Damas", "Encruzilhada", "Fátima", "Guararapes", "Horizonte"]
 
-# Gerando dados aleatórios com nomes únicos
+# Gerando dados aleatórios com nomes únicos (abordagem otimizada)
 nomes_unicos = []
 nomes_usados = set()
 
-for i in range(500):
-    while True:
-        nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
-        if nome not in nomes_usados:
-            nomes_usados.add(nome)
+# Calcular combinações possíveis
+total_combinacoes = len(nomes) * len(sobrenomes)
+print(f"Total de combinações possíveis: {total_combinacoes}")
+
+# Se temos combinações suficientes, usar abordagem de unicidade
+if total_combinacoes >= 500:
+    for i in range(500):
+        tentativas = 0
+        while tentativas < 50:  # Limite de tentativas
+            nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
+            if nome not in nomes_usados:
+                nomes_usados.add(nome)
+                nomes_unicos.append(nome)
+                break
+            tentativas += 1
+        
+        # Se não conseguiu nome único, usar um nome com identificador
+        if tentativas >= 50:
+            nome_base = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
+            nome = f"{nome_base} ({i+1})"
             nomes_unicos.append(nome)
-            break
+else:
+    # Se não temos combinações suficientes, permitir repetições com identificadores
+    for i in range(500):
+        nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
+        if nome in nomes_usados:
+            nome = f"{nome} ({i+1})"
+        nomes_usados.add(nome)
+        nomes_unicos.append(nome)
 
 dados = {
     'nome_aluno': nomes_unicos,
