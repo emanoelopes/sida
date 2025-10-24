@@ -1601,7 +1601,7 @@ def criar_graficos_distribuicao(df_usuario: pd.DataFrame) -> dict:
         
         # Gráfico de distribuição de resultados
         if 'resultado_final' in df_usuario.columns:
-            fig, ax = plt.subplots(figsize=(10, 6))
+            fig, ax = plt.subplots(figsize=(12, 8))  # Aumentado o tamanho
             
             # Criar bins para notas numéricas (escala 0-10)
             df_traduzido = df_usuario.copy()
@@ -1612,16 +1612,30 @@ def criar_graficos_distribuicao(df_usuario: pd.DataFrame) -> dict:
                 include_lowest=True
             )
             
-            df_traduzido['faixa_nota'].value_counts().plot(kind='bar', ax=ax, color=['#dc3545', '#ffc107', '#28a745'])
-            ax.set_title('Distribuição de Resultados da Turma', fontsize=16, fontweight='bold')
-            ax.set_xlabel('Faixa de Nota')
-            ax.set_ylabel('Quantidade de Alunos')
-            ax.tick_params(axis='x', rotation=45)
+            # Contar valores por faixa
+            contagem_faixas = df_traduzido['faixa_nota'].value_counts()
+            
+            # Criar gráfico de barras
+            bars = ax.bar(contagem_faixas.index, contagem_faixas.values, 
+                         color=['#dc3545', '#ffc107', '#28a745'], alpha=0.8, edgecolor='black', linewidth=1)
+            
+            # Configurar título e labels
+            ax.set_title('Distribuição de Resultados da Turma', fontsize=18, fontweight='bold', pad=20)
+            ax.set_xlabel('Faixa de Nota', fontsize=14, fontweight='bold')
+            ax.set_ylabel('Quantidade de Alunos', fontsize=14, fontweight='bold')
+            ax.tick_params(axis='x', rotation=45, labelsize=12)
+            ax.tick_params(axis='y', labelsize=12)
             
             # Adicionar valores nas barras
-            for i, v in enumerate(df_traduzido['resultado_final'].value_counts()):
-                ax.text(i, v + 0.1, str(v), ha='center', va='bottom', fontweight='bold')
+            for i, (bar, valor) in enumerate(zip(bars, contagem_faixas.values)):
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5, 
+                       str(valor), ha='center', va='bottom', fontweight='bold', fontsize=12)
             
+            # Adicionar grid para melhor visualização
+            ax.grid(True, alpha=0.3, axis='y')
+            ax.set_axisbelow(True)
+            
+            # Ajustar layout
             plt.tight_layout()
             graficos['distribuicao_resultados'] = fig
         
@@ -1757,13 +1771,34 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
             'media_geral': df_usuario['resultado_final'].mean()
         }
         
-        # Tentar usar OpenAI se disponível
-        try:
-            from .openai_interpreter import interpretar_grafico
-            interpretacao = interpretar_grafico('distribuicao_resultados', contexto)
+        # Verificar se usuário quer usar IA
+        usar_ia = st.session_state.get('usar_ia', True)
+        
+        if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+            # Usar OpenAI se disponível e válida
+            try:
+                from .openai_interpreter import interpretar_grafico
+                interpretacao = interpretar_grafico('distribuicao_resultados', contexto)
+                st.info(f"💡 **Interpretação IA**: {interpretacao}")
+            except Exception as e:
+                # Fallback para interpretação estática
+                interpretacao = """
+                Este gráfico mostra a distribuição de resultados da turma. 
+                Uma boa distribuição tem mais alunos aprovados que reprovados.
+                Se houver muitos reprovados, considere estratégias de apoio pedagógico.
+                """
+                st.info(f"💡 **Interpretação**: {interpretacao}")
+        elif usar_ia and 'openai_key' in st.session_state and not st.session_state.get('api_valida', False):
+            # API configurada mas não testada
+            st.warning("⚠️ Chave OpenAI configurada mas não testada. Teste a chave na sidebar.")
+            interpretacao = """
+            Este gráfico mostra a distribuição de resultados da turma. 
+            Uma boa distribuição tem mais alunos aprovados que reprovados.
+            Se houver muitos reprovados, considere estratégias de apoio pedagógico.
+            """
             st.info(f"💡 **Interpretação**: {interpretacao}")
-        except:
-            # Fallback para interpretação estática
+        else:
+            # Interpretação estática
             interpretacao = """
             Este gráfico mostra a distribuição de resultados da turma. 
             Uma boa distribuição tem mais alunos aprovados que reprovados.
@@ -1779,12 +1814,28 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
         st.pyplot(fig_corr)
         
         # Interpretação via OpenAI
-        try:
-            from .openai_interpreter import interpretar_grafico
-            top_corr = encontrar_top_correlacoes(resultados['metricas']['correlacao'])
-            interpretacao = interpretar_grafico('correlacao', top_corr)
+        if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+            try:
+                from .openai_interpreter import interpretar_grafico
+                top_corr = encontrar_top_correlacoes(resultados['metricas']['correlacao'])
+                interpretacao = interpretar_grafico('correlacao', top_corr)
+                st.info(f"💡 **Interpretação IA**: {interpretacao}")
+            except Exception as e:
+                interpretacao = """
+                Este gráfico mostra como diferentes fatores se relacionam. 
+                Cores mais intensas indicam relações mais fortes.
+                Use para identificar quais fatores influenciam o desempenho.
+                """
+                st.info(f"💡 **Interpretação**: {interpretacao}")
+        elif usar_ia and 'openai_key' in st.session_state and not st.session_state.get('api_valida', False):
+            st.warning("⚠️ Chave OpenAI configurada mas não testada. Teste a chave na sidebar.")
+            interpretacao = """
+            Este gráfico mostra como diferentes fatores se relacionam. 
+            Cores mais intensas indicam relações mais fortes.
+            Use para identificar quais fatores influenciam o desempenho.
+            """
             st.info(f"💡 **Interpretação**: {interpretacao}")
-        except:
+        else:
             interpretacao = """
             Este gráfico mostra como diferentes fatores se relacionam. 
             Cores mais intensas indicam relações mais fortes.
@@ -1802,7 +1853,8 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
             "Selecione o aluno para análise:",
             options=nomes_alunos,
             index=0,
-            help="Escolha um aluno para comparar com a média da turma"
+            help="Escolha um aluno para comparar com a média da turma",
+            key="selectbox_aluno_radar"  # Chave única para evitar duplicação
         )
         
         # Criar gráfico radar para o aluno selecionado
@@ -1812,16 +1864,32 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
             st.pyplot(grafico_radar['radar_comparacao_aluno'])
             
             # Interpretação do gráfico radar
-            try:
-                from .openai_interpreter import interpretar_grafico
-                contexto_radar = {
-                    'nome_aluno': nome_selecionado,
-                    'total_alunos': len(df_usuario),
-                    'media_turma': df_usuario['resultado_final'].mean()
-                }
-                interpretacao = interpretar_grafico('radar_comparacao', contexto_radar)
+            if usar_ia and 'openai_key' in st.session_state and st.session_state.get('api_valida', False):
+                try:
+                    from .openai_interpreter import interpretar_grafico
+                    contexto_radar = {
+                        'nome_aluno': nome_selecionado,
+                        'total_alunos': len(df_usuario),
+                        'media_turma': df_usuario['resultado_final'].mean()
+                    }
+                    interpretacao = interpretar_grafico('radar_comparacao', contexto_radar)
+                    st.info(f"💡 **Interpretação IA**: {interpretacao}")
+                except Exception as e:
+                    interpretacao = f"""
+                    Este gráfico radar compara o desempenho de {nome_selecionado} com a média da turma. 
+                    Áreas onde o aluno está acima da média (linha azul acima da rosa) indicam pontos fortes.
+                    Áreas abaixo da média podem indicar necessidades de apoio pedagógico.
+                    """
+                    st.info(f"💡 **Interpretação**: {interpretacao}")
+            elif usar_ia and 'openai_key' in st.session_state and not st.session_state.get('api_valida', False):
+                st.warning("⚠️ Chave OpenAI configurada mas não testada. Teste a chave na sidebar.")
+                interpretacao = f"""
+                Este gráfico radar compara o desempenho de {nome_selecionado} com a média da turma. 
+                Áreas onde o aluno está acima da média (linha azul acima da rosa) indicam pontos fortes.
+                Áreas abaixo da média podem indicar necessidades de apoio pedagógico.
+                """
                 st.info(f"💡 **Interpretação**: {interpretacao}")
-            except:
+            else:
                 interpretacao = f"""
                 Este gráfico radar compara o desempenho de {nome_selecionado} com a média da turma. 
                 Áreas onde o aluno está acima da média (linha azul acima da rosa) indicam pontos fortes.
