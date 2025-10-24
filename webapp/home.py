@@ -125,8 +125,7 @@ if uploaded_file:
                         st.session_state.analise_resultados = resultados
                         st.success("✅ Análise concluída com sucesso!")
                         
-                        # Exibir resultados com interpretação IA
-                        exibir_resultados_com_ia(resultados, df_usuario)
+                        # Os resultados serão exibidos na seção abaixo
                     else:
                         st.error("❌ Erro na análise. Verifique os dados e tente novamente.")
         else:
