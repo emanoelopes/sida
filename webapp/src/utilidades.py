@@ -1254,9 +1254,15 @@ def gerar_template_unificado() -> pd.DataFrame:
         df_importance_uci = calcular_feature_importance_uci()
         top_features_uci = df_importance_uci.nlargest(2, 'importance')['feature'].tolist() if not df_importance_uci.empty else []
         
-        # Get TOP 2 features from OULAD (não 3!)
+        # Get TOP features from OULAD, excluding temporal features
         df_importance_oulad = calcular_feature_importance_oulad()
-        top_features_oulad = df_importance_oulad.nlargest(2, 'importance')['feature'].tolist() if not df_importance_oulad.empty else []
+        if not df_importance_oulad.empty:
+            # Exclude temporal features that don't make sense for regular school periods
+            temporal_features = ['date_registration', 'date_unregistration']
+            df_filtered = df_importance_oulad[~df_importance_oulad['feature'].isin(temporal_features)]
+            top_features_oulad = df_filtered.nlargest(2, 'importance')['feature'].tolist()
+        else:
+            top_features_oulad = []
         
         # Build template with name field first
         template_data = {'nome_aluno': [''] * 10}
@@ -1295,7 +1301,7 @@ def gerar_template_unificado() -> pd.DataFrame:
             if col == 'nome_aluno':
                 continue
             elif col == 'resultado_final':
-                df_template.loc[0, col] = 'Pass'
+                df_template.loc[0, col] = 7.5  # Exemplo de nota 0-10 (padrão brasileiro)
             elif 'reprovacoes' in col or 'faltas' in col or 'tentativas' in col:
                 df_template.loc[0, col] = 0
             elif 'nota' in col or 'pontuacao' in col:
@@ -1386,6 +1392,14 @@ def validar_template_usuario(df_usuario: pd.DataFrame, df_template: pd.DataFrame
         if 'resultado_final' not in df_usuario.columns:
             return False, "Coluna 'resultado_final' não encontrada no arquivo"
         
+        # Verificar se resultado_final está na escala 0-10 (padrão brasileiro)
+        resultado_values = df_usuario['resultado_final'].dropna()
+        if len(resultado_values) > 0:
+            if not pd.api.types.is_numeric_dtype(resultado_values):
+                return False, "Coluna 'resultado_final' deve conter valores numéricos (0-10)"
+            if (resultado_values < 0).any() or (resultado_values > 10).any():
+                return False, "Valores em 'resultado_final' devem estar entre 0 e 10"
+        
         # Verificar se tem a coluna nome_aluno (para template unificado)
         if 'nome_aluno' not in df_usuario.columns:
             return False, "Coluna 'nome_aluno' não encontrada no arquivo"
@@ -1435,7 +1449,8 @@ def realizar_eda_automatica(df_usuario: pd.DataFrame) -> dict:
         X = df_usuario.drop([target_col, 'nome_aluno'], axis=1, errors='ignore')
         
         # Detectar tipo de problema (regressão vs classificação)
-        is_regression = pd.api.types.is_numeric_dtype(y) and y.nunique() > 10
+        # Sempre tratar como regressão se for numérico (escala 0-10)
+        is_regression = pd.api.types.is_numeric_dtype(y)
         
         # Dividir dados
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -1567,8 +1582,8 @@ def realizar_analise_completa(df_usuario: pd.DataFrame) -> dict:
         # Distribuições
         resultados['graficos']['distribuicoes'] = criar_graficos_distribuicao(df_usuario)
         
-        # Comparações
-        resultados['graficos']['comparacoes'] = criar_graficos_comparacao(df_usuario)
+        # Gráfico radar (será criado com seleção de aluno)
+        resultados['graficos']['radar'] = criar_grafico_radar_aluno(df_usuario)
         
         return resultados
         
@@ -1588,17 +1603,18 @@ def criar_graficos_distribuicao(df_usuario: pd.DataFrame) -> dict:
         if 'resultado_final' in df_usuario.columns:
             fig, ax = plt.subplots(figsize=(10, 6))
             
-            # Traduzir valores
+            # Criar bins para notas numéricas (escala 0-10)
             df_traduzido = df_usuario.copy()
-            df_traduzido['resultado_final'] = df_traduzido['resultado_final'].map({
-                'Pass': 'Aprovados',
-                'Fail': 'Reprovados',
-                'Distinction': 'Com Distinção'
-            })
+            df_traduzido['faixa_nota'] = pd.cut(
+                df_traduzido['resultado_final'], 
+                bins=[0, 5, 7, 10], 
+                labels=['Insuficiente (0-5)', 'Regular (5-7)', 'Bom (7-10)'],
+                include_lowest=True
+            )
             
-            df_traduzido['resultado_final'].value_counts().plot(kind='bar', ax=ax, color=['#28a745', '#dc3545', '#ffc107'])
+            df_traduzido['faixa_nota'].value_counts().plot(kind='bar', ax=ax, color=['#dc3545', '#ffc107', '#28a745'])
             ax.set_title('Distribuição de Resultados da Turma', fontsize=16, fontweight='bold')
-            ax.set_xlabel('Resultado Final')
+            ax.set_xlabel('Faixa de Nota')
             ax.set_ylabel('Quantidade de Alunos')
             ax.tick_params(axis='x', rotation=45)
             
@@ -1615,69 +1631,100 @@ def criar_graficos_distribuicao(df_usuario: pd.DataFrame) -> dict:
         st.error(f"Erro ao criar gráficos de distribuição: {e}")
         return {}
 
-def criar_graficos_comparacao(df_usuario: pd.DataFrame) -> dict:
-    """Cria gráficos de comparação entre aprovados e reprovados"""
+def criar_grafico_radar_aluno(df_usuario: pd.DataFrame, nome_aluno: str = None) -> dict:
+    """Cria gráfico radar comparando aluno individual com média da turma"""
     try:
         import matplotlib.pyplot as plt
-        import seaborn as sns
+        import numpy as np
+        from math import pi
         
         graficos = {}
         
-        if 'resultado_final' in df_usuario.columns:
-            # Traduzir resultado_final
-            df_traduzido = df_usuario.copy()
-            df_traduzido['resultado_final'] = df_traduzido['resultado_final'].map({
-                'Pass': 'Aprovados',
-                'Fail': 'Reprovados'
-            })
+        if 'resultado_final' in df_usuario.columns and 'nome_aluno' in df_usuario.columns:
+            # Se não especificado, usar o primeiro aluno como exemplo
+            if nome_aluno is None:
+                nome_aluno = df_usuario['nome_aluno'].iloc[0]
             
-            # Calcular médias por grupo
-            medias = df_traduzido.groupby('resultado_final').agg({
-                'faltas': 'mean',
-                'nota_2bim': 'mean',
-                'cliques_plataforma': 'mean',
-                'pontuacao_atividades': 'mean'
-            }).round(2)
+            # Verificar se o aluno existe
+            aluno_data = df_usuario[df_usuario['nome_aluno'] == nome_aluno]
+            if aluno_data.empty:
+                st.warning(f"Aluno '{nome_aluno}' não encontrado. Usando primeiro aluno como exemplo.")
+                nome_aluno = df_usuario['nome_aluno'].iloc[0]
+                aluno_data = df_usuario.iloc[[0]]
             
-            # Criar gráfico de comparação
-            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-            fig.suptitle('Comparação: Aprovados vs Reprovados', fontsize=16, fontweight='bold')
+            # Obter dados do aluno selecionado
+            aluno_row = aluno_data.iloc[0]
             
-            # Gráfico 1: Faltas
-            if 'faltas' in medias.columns:
-                medias['faltas'].plot(kind='bar', ax=axes[0,0], color=['#28a745', '#dc3545'])
-                axes[0,0].set_title('Média de Faltas')
-                axes[0,0].set_ylabel('Número de Faltas')
-                axes[0,0].tick_params(axis='x', rotation=0)
+            # Calcular médias da turma (excluindo o aluno selecionado)
+            turma_media = df_usuario[df_usuario['nome_aluno'] != nome_aluno].mean(numeric_only=True)
             
-            # Gráfico 2: Notas
-            if 'nota_2bim' in medias.columns:
-                medias['nota_2bim'].plot(kind='bar', ax=axes[0,1], color=['#28a745', '#dc3545'])
-                axes[0,1].set_title('Média das Notas')
-                axes[0,1].set_ylabel('Nota (0-10)')
-                axes[0,1].tick_params(axis='x', rotation=0)
+            # Selecionar colunas numéricas para o radar (incluindo resultado_final)
+            colunas_numericas = [col for col in df_usuario.select_dtypes(include=[np.number]).columns 
+                               if col in aluno_row.index]
             
-            # Gráfico 3: Cliques
-            if 'cliques_plataforma' in medias.columns:
-                medias['cliques_plataforma'].plot(kind='bar', ax=axes[1,0], color=['#28a745', '#dc3545'])
-                axes[1,0].set_title('Média de Cliques na Plataforma')
-                axes[1,0].set_ylabel('Número de Cliques')
-                axes[1,0].tick_params(axis='x', rotation=0)
-            
-            # Gráfico 4: Pontuação
-            if 'pontuacao_atividades' in medias.columns:
-                medias['pontuacao_atividades'].plot(kind='bar', ax=axes[1,1], color=['#28a745', '#dc3545'])
-                axes[1,1].set_title('Média de Pontuação nas Atividades')
-                axes[1,1].set_ylabel('Pontuação (0-100)')
-                axes[1,1].tick_params(axis='x', rotation=0)
-            
-            plt.tight_layout()
-            graficos['comparacao_aprovados_reprovados'] = fig
+            if len(colunas_numericas) >= 3:  # Mínimo 3 dimensões para radar
+                # Preparar dados para o radar
+                valores_aluno = [aluno_row[col] for col in colunas_numericas]
+                valores_turma = [turma_media[col] for col in colunas_numericas]
+                
+                # Normalizar valores para escala 0-10 (assumindo que as features já estão nessa escala)
+                # Se não estiverem, fazer normalização simples
+                max_val = max(max(valores_aluno), max(valores_turma))
+                if max_val > 10:
+                    valores_aluno = [v/max_val*10 for v in valores_aluno]
+                    valores_turma = [v/max_val*10 for v in valores_turma]
+                
+                # Criar gráfico radar
+                fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
+                
+                # Ângulos para cada dimensão
+                angles = [n / float(len(colunas_numericas)) * 2 * pi for n in range(len(colunas_numericas))]
+                angles += angles[:1]  # Fechar o círculo
+                
+                # Adicionar valores para fechar o círculo
+                valores_aluno += valores_aluno[:1]
+                valores_turma += valores_turma[:1]
+                
+                # Plotar dados
+                ax.plot(angles, valores_aluno, 'o-', linewidth=2, label=f'{nome_aluno}', color='#2E86AB', markersize=8)
+                ax.fill(angles, valores_aluno, alpha=0.25, color='#2E86AB')
+                
+                ax.plot(angles, valores_turma, 'o-', linewidth=2, label='Média da Turma', color='#A23B72', markersize=8)
+                ax.fill(angles, valores_turma, alpha=0.25, color='#A23B72')
+                
+                # Configurar eixos com traduções
+                traducao_rotulos = {
+                    'nota_2bim': 'Nota 2º Bimestre',
+                    'faltas': 'Faltas',
+                    'pontuacao': 'Pontuação',
+                    'resultado_final': 'Nota Final'
+                }
+                
+                ax.set_xticks(angles[:-1])
+                ax.set_xticklabels([traducao_rotulos.get(col, col.replace('_', ' ').title()) for col in colunas_numericas])
+                ax.set_ylim(0, 10)
+                ax.set_yticks([2, 4, 6, 8, 10])
+                ax.set_yticklabels(['2', '4', '6', '8', '10'])
+                ax.grid(True)
+                
+                # Título e legenda
+                ax.set_title(f'Comparação: {nome_aluno} vs Média da Turma', size=16, fontweight='bold', pad=20)
+                ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0))
+                
+                # Adicionar valores nas pontas
+                for i, (angle, valor_aluno, valor_turma) in enumerate(zip(angles[:-1], valores_aluno[:-1], valores_turma[:-1])):
+                    ax.text(angle, valor_aluno + 0.5, f'{valor_aluno:.1f}', ha='center', va='center', fontweight='bold', color='#2E86AB')
+                    ax.text(angle, valor_turma - 0.5, f'{valor_turma:.1f}', ha='center', va='center', fontweight='bold', color='#A23B72')
+                
+                plt.tight_layout()
+                graficos['radar_comparacao_aluno'] = fig
+            else:
+                st.warning("Não há colunas numéricas suficientes para criar o gráfico radar.")
         
         return graficos
         
     except Exception as e:
-        st.error(f"Erro ao criar gráficos de comparação: {e}")
+        st.error(f"Erro ao criar gráfico radar: {e}")
         return {}
 
 def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
@@ -1691,7 +1738,7 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
     with col1:
         st.metric("Total de Alunos", len(df_usuario))
     with col2:
-        taxa_aprovacao = (df_usuario['resultado_final'] == 'Pass').mean() * 100
+        taxa_aprovacao = (df_usuario['resultado_final'] >= 5.0).mean() * 100  # Aprovação >= 5.0
         st.metric("Taxa de Aprovação", f"{taxa_aprovacao:.1f}%")
     with col3:
         st.metric("Features Analisadas", len(df_usuario.columns) - 2)
@@ -1705,8 +1752,9 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
         # Interpretação via OpenAI
         contexto = {
             'total_alunos': len(df_usuario),
-            'aprovados': (df_usuario['resultado_final'] == 'Pass').sum(),
-            'reprovados': (df_usuario['resultado_final'] == 'Fail').sum()
+            'aprovados': (df_usuario['resultado_final'] >= 5.0).sum(),
+            'reprovados': (df_usuario['resultado_final'] < 5.0).sum(),
+            'media_geral': df_usuario['resultado_final'].mean()
         }
         
         # Tentar usar OpenAI se disponível
@@ -1744,9 +1792,50 @@ def exibir_resultados_com_ia(resultados: dict, df_usuario: pd.DataFrame):
             """
             st.info(f"💡 **Interpretação**: {interpretacao}")
     
-    # 4. Comparação por Aluno
-    st.markdown("### 👥 Análise Individual")
-    st.dataframe(df_usuario)
+    # 4. Gráfico Radar - Comparação Individual
+    st.markdown("### 🎯 Análise Individual - Gráfico Radar")
+    
+    # Campo de busca para seleção do aluno
+    if 'nome_aluno' in df_usuario.columns:
+        nomes_alunos = sorted(df_usuario['nome_aluno'].unique().tolist())  # Ordem alfabética
+        nome_selecionado = st.selectbox(
+            "Selecione o aluno para análise:",
+            options=nomes_alunos,
+            index=0,
+            help="Escolha um aluno para comparar com a média da turma"
+        )
+        
+        # Criar gráfico radar para o aluno selecionado
+        grafico_radar = criar_grafico_radar_aluno(df_usuario, nome_selecionado)
+        
+        if 'radar_comparacao_aluno' in grafico_radar:
+            st.pyplot(grafico_radar['radar_comparacao_aluno'])
+            
+            # Interpretação do gráfico radar
+            try:
+                from .openai_interpreter import interpretar_grafico
+                contexto_radar = {
+                    'nome_aluno': nome_selecionado,
+                    'total_alunos': len(df_usuario),
+                    'media_turma': df_usuario['resultado_final'].mean()
+                }
+                interpretacao = interpretar_grafico('radar_comparacao', contexto_radar)
+                st.info(f"💡 **Interpretação**: {interpretacao}")
+            except:
+                interpretacao = f"""
+                Este gráfico radar compara o desempenho de {nome_selecionado} com a média da turma. 
+                Áreas onde o aluno está acima da média (linha azul acima da rosa) indicam pontos fortes.
+                Áreas abaixo da média podem indicar necessidades de apoio pedagógico.
+                """
+                st.info(f"💡 **Interpretação**: {interpretacao}")
+        else:
+            st.warning("Não foi possível criar o gráfico radar para este aluno.")
+    else:
+        st.warning("Coluna 'nome_aluno' não encontrada nos dados.")
+    
+    # 5. Tabela de Dados
+    st.markdown("### 📋 Dados Completos da Turma")
+    st.dataframe(df_usuario, use_container_width=True)
 
 def criar_grafico_correlacao_traduzido(corr_matrix: pd.DataFrame):
     """Cria heatmap de correlação com rótulos traduzidos"""
