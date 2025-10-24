@@ -7,9 +7,20 @@ nomes = ["João", "Maria", "Pedro", "Ana", "Carlos", "Lúcia", "Marcos", "Clara"
 sobrenomes = ["Silva", "Santos", "Oliveira", "Pereira", "Ferreira", "Rodrigues", "Almeida", "Costa", "Gonçalves", "Lima"]
 bairros_fortaleza = ["Aldeota", "Amaralina", "Bom Jardim", "Cajazeiras", "Conquista", "Damas", "Encruzilhada", "Fátima", "Guararapes", "Horizonte"]
 
-# Gerando dados aleatórios
+# Gerando dados aleatórios com nomes únicos
+nomes_unicos = []
+for i in range(500):
+    nome = f"{random.choice(nomes)} {random.choice(sobrenomes)}"
+    # Garantir unicidade adicionando número se necessário
+    contador = 1
+    nome_original = nome
+    while nome in nomes_unicos:
+        nome = f"{nome_original} {contador}"
+        contador += 1
+    nomes_unicos.append(nome)
+
 dados = {
-    'nome_aluno': [f"{random.choice(nomes)} {random.choice(sobrenomes)}" for _ in range(500)],
+    'nome_aluno': nomes_unicos,
     'nota_2bim': [round(random.uniform(0, 10), 1) for _ in range(500)],
     'faltas': [random.randint(0, 10) for _ in range(500)],
     'pontuacao': [random.randint(0, 10) for _ in range(500)],
