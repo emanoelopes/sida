@@ -2,7 +2,7 @@
 
 Sistema de identificação de dificuldades de aprendzagem por meio de IA.
 
-Produto educacional digital para compor os requisistos exigidos pelo Mestrado Profissional em Tecnologia Educacional.
+Produto Educacional Digital para compor os requisistos exigidos pelo Mestrado Profissional em Tecnologia Educacional.
 
 ## 🐳 Execução com Docker (Recomendado)
 
