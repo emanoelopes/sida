@@ -30,9 +30,20 @@ def verificar_api_key(api_key: str) -> bool:
         return False
 
 def inicializar_estado_api():
-    """Inicializa o estado da API se necessário"""
-    if 'openai_key' in st.session_state and 'api_valida' not in st.session_state:
-        st.session_state.api_valida = False
+    """Inicializa o estado da API se necessário e testa chave existente se não foi testada"""
+    if 'openai_key' in st.session_state:
+        if 'api_valida' not in st.session_state:
+            # Testar automaticamente se ainda não foi testada nesta sessão
+            # Usar uma flag para evitar múltiplos testes desnecessários
+            if 'api_testando' not in st.session_state:
+                st.session_state.api_testando = True
+                try:
+                    st.session_state.api_valida = verificar_api_key(st.session_state.openai_key)
+                except:
+                    st.session_state.api_valida = False
+        # Resetar flag de teste se chave foi validada
+        if st.session_state.get('api_valida', False):
+            st.session_state.api_testando = False
 
 def configurar_openai_key():
     """Permite usuário configurar sua própria chave OpenAI"""
@@ -371,6 +382,9 @@ def traduzir_rotulos_graficos(tipo_grafico: str, dados_contexto: Dict[str, Any])
 
 def criar_sidebar_landpage():
     """Sidebar limpa e focada para a landing page"""
+    # Inicializar estado se necessário
+    inicializar_estado_api()
+    
     with st.sidebar:
         st.markdown("### 🔑 Configuração OpenAI")
         st.markdown("*Para interpretação automática dos gráficos*")
@@ -384,13 +398,36 @@ def criar_sidebar_landpage():
         
         if st.button("💾 Salvar Chave", type="primary"):
             if api_key and api_key.startswith('sk-'):
-                st.session_state.openai_key = api_key
-                st.success("✅ Chave salva com sucesso!")
+                # Verificar se a chave é válida testando a API
+                with st.spinner("🔍 Verificando chave da API..."):
+                    is_valid = verificar_api_key(api_key)
+                    if is_valid:
+                        st.session_state.openai_key = api_key
+                        st.session_state.api_valida = True
+                        st.session_state.interpretacoes_cache = {}  # Limpar cache
+                        st.success("✅ Chave válida e salva com sucesso!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.session_state.api_valida = False
+                        st.error("❌ Chave inválida ou sem créditos. Verifique sua API key.")
             else:
                 st.error("❌ Chave inválida. Deve começar com 'sk-'")
         
         if 'openai_key' in st.session_state:
-            st.info("🔓 Chave OpenAI configurada")
+            if st.session_state.get('api_valida', False):
+                st.success("🔓 Chave OpenAI válida e ativa")
+            else:
+                st.warning("⚠️ Chave OpenAI configurada mas não testada")
+                if st.button("🔄 Testar Chave Novamente", type="secondary"):
+                    with st.spinner("🔍 Testando chave existente..."):
+                        if verificar_api_key(st.session_state.openai_key):
+                            st.session_state.api_valida = True
+                            st.success("✅ Chave validada com sucesso!")
+                            st.rerun()
+                        else:
+                            st.session_state.api_valida = False
+                            st.error("❌ Chave inválida. Configure uma nova chave.")
         
         st.markdown("---")
         st.markdown("#### 💡 Como usar:")
