@@ -1,4 +1,4 @@
-# Sistema de Identifcação de Dificuldades de Aprendizagem (SIDA)
+# Clareia: Sistema de Identifcação de Dificuldades de Aprendizagem
 
 Sistema de identificação de dificuldades de aprendzagem por meio de IA.
 
