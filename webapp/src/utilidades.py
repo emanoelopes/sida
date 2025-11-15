@@ -260,7 +260,10 @@ def calcular_metricas_oulad(df_oulad):
     
     metricas = {
         'total_estudantes': df_oulad['id_student'].nunique() if 'id_student' in df_oulad.columns else len(df_oulad),
-        'media_cliques': df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns else 0,
+        'media_cliques': (
+            df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns 
+            else (df_oulad['sum_click'].mean() if 'sum_click' in df_oulad.columns else 0)
+        ),
         'taxa_aprovacao': (df_oulad['final_result'] == 'Pass').mean() * 100 if 'final_result' in df_oulad.columns else 0,
         'distribuicao_genero': df_oulad.groupby('gender')['id_student'].nunique().to_dict() if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
         'distribuicao_idade': df_oulad.groupby('age_band')['id_student'].nunique().to_dict() if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
