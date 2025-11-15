@@ -155,7 +155,13 @@ def obter_metricas_principais_oulad():
         else:
             total_estudantes = len(df_oulad)  # Fallback se não houver coluna id_student
         
-        media_cliques = df_oulad['clicks'].mean() if 'clicks' in df_oulad.columns else 0
+        # Calcular média de cliques - verificar tanto 'clicks' quanto 'sum_click'
+        if 'clicks' in df_oulad.columns:
+            media_cliques = df_oulad['clicks'].mean()
+        elif 'sum_click' in df_oulad.columns:
+            media_cliques = df_oulad['sum_click'].mean()
+        else:
+            media_cliques = 0
         
         # Taxa de aprovação
         if 'final_result' in df_oulad.columns:
