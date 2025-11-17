@@ -104,19 +104,38 @@ if len(numeric_columns) > 0:
     else:
         axes = axes.flatten()
     
+    # Mapeamento de tradução das colunas para português
+    traducoes_colunas = {
+        'age': 'Idade',
+        'G1': 'Nota do 1º Período',
+        'G2': 'Nota do 2º Período',
+        'G3': 'Nota Final',
+        'absences': 'Faltas',
+        'failures': 'Reprovações Anteriores',
+        'freetime': 'Tempo Livre',
+        'goout': 'Saídas',
+        'Dalc': 'Consumo de Álcool (Dia)',
+        'Walc': 'Consumo de Álcool (Fim de Semana)',
+        'health': 'Saúde',
+        'famrel': 'Relação Familiar'
+    }
+    
     for i, col in enumerate(numeric_columns):
+        # Traduzir nome da coluna para português
+        nome_traduzido = traducoes_colunas.get(col, col.title())
+        
         if viz_type == "Box Plot":
             axes[i].boxplot(numeric_df[col].dropna())
-            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_title(f'Distribuição de {nome_traduzido}')
             axes[i].set_ylabel('Valor')
         elif viz_type == "Histograma":
             axes[i].hist(numeric_df[col].dropna(), bins=30, alpha=0.7, edgecolor='black')
-            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_title(f'Distribuição de {nome_traduzido}')
             axes[i].set_xlabel('Valor')
             axes[i].set_ylabel('Frequência')
         elif viz_type == "Violin Plot":
             axes[i].violinplot(numeric_df[col].dropna())
-            axes[i].set_title(f'Distribuição de {col}')
+            axes[i].set_title(f'Distribuição de {nome_traduzido}')
             axes[i].set_ylabel('Valor')
         
     # Hide empty subplots
