@@ -240,14 +240,35 @@ Há uma concentração mais acentuada de mães com Nível Superior e com Ensino 
 st.markdown("## Matriz de Correlação")
 st.write("Esta visualização mostra como as variáveis numéricas se relacionam entre si.")
 
+# Mapeamento de tradução das colunas para português (reutilizando o mesmo mapeamento)
+traducoes_colunas_corr = {
+    'age': 'Idade',
+    'G1': 'Nota do 1º Período',
+    'G2': 'Nota do 2º Período',
+    'G3': 'Nota Final',
+    'absences': 'Faltas',
+    'failures': 'Reprovações Anteriores',
+    'freetime': 'Tempo Livre',
+    'goout': 'Saídas',
+    'Dalc': 'Consumo de Álcool (Dia)',
+    'Walc': 'Consumo de Álcool (Fim de Semana)',
+    'health': 'Saúde',
+    'famrel': 'Relação Familiar'
+}
+
 # Calcular a matriz de correlação
 corr = numeric_df.corr()
 
+# Renomear as colunas e índices para português
+corr_renamed = corr.copy()
+corr_renamed.columns = [traducoes_colunas_corr.get(col, col.title()) for col in corr.columns]
+corr_renamed.index = [traducoes_colunas_corr.get(idx, idx.title()) for idx in corr.index]
+
 # Plotar o mapa de calor
 fig, ax = plt.subplots(figsize=(12, 10))
-mask = np.triu(np.ones_like(corr, dtype=bool))
+mask = np.triu(np.ones_like(corr_renamed, dtype=bool))
 cmap = sns.diverging_palette(230, 20, as_cmap=True)
-sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
+sns.heatmap(corr_renamed, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
             square=True, linewidths=.5, annot=True, fmt=".2f", ax=ax)
 plt.title('Matriz de Correlação entre Variáveis Numéricas', fontsize=15)
 st.pyplot(fig)
