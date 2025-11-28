@@ -9,9 +9,7 @@ import numpy as np
 from src.utilidades import (
     obter_metricas_principais_uci,
     obter_metricas_principais_oulad,
-    exibir_cartoes_informativos,
-    calcular_feature_importance_uci,
-    calcular_feature_importance_oulad
+    exibir_cartoes_informativos
 )
 from src.openai_interpreter import criar_sidebar_padrao
 
@@ -47,19 +45,6 @@ with col1:
     - Foco em educação tradicional
     - Features: faltas, notas, tempo de estudo, etc.
     """)
-    
-    # Feature importance UCI
-    try:
-        df_importance_uci = calcular_feature_importance_uci()
-        if not df_importance_uci.empty:
-            st.markdown("**Top Features UCI:**")
-            top_uci = df_importance_uci.nlargest(5, 'importance')
-            for idx, row in top_uci.iterrows():
-                st.markdown(f"- **{row['feature']}**: {row['importance']:.3f}")
-        else:
-            st.warning("Feature importance UCI não disponível")
-    except Exception as e:
-        st.error(f"Erro ao carregar feature importance UCI: {e}")
 
 with col2:
     st.markdown("### 🌐 Dataset OULAD")
@@ -70,75 +55,20 @@ with col2:
     - Foco em educação online
     - Features: cliques, pontuações, atividades, etc.
     """)
-    
-    # Feature importance OULAD
-    try:
-        df_importance_oulad = calcular_feature_importance_oulad()
-        if not df_importance_oulad.empty:
-            st.markdown("**Top Features OULAD:**")
-            top_oulad = df_importance_oulad.nlargest(5, 'importance')
-            for idx, row in top_oulad.iterrows():
-                st.markdown(f"- **{row['feature']}**: {row['importance']:.3f}")
-        else:
-            st.warning("Feature importance OULAD não disponível")
-    except Exception as e:
-        st.error(f"Erro ao carregar feature importance OULAD: {e}")
-
-# Análise de Feature Importance Combinada
-st.markdown("## 🎯 Análise de Feature Importance Combinada")
-
-try:
-    # Combinar top features de ambos os datasets
-    df_importance_uci = calcular_feature_importance_uci()
-    df_importance_oulad = calcular_feature_importance_oulad()
-    
-    if not df_importance_uci.empty and not df_importance_oulad.empty:
-        # Top 2 de cada dataset
-        top_uci = df_importance_uci.nlargest(2, 'importance')
-        top_oulad = df_importance_oulad.nlargest(2, 'importance')
-        
-        st.markdown("### 📋 Features Selecionadas para Template Unificado")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**UCI (Educação Tradicional):**")
-            for idx, row in top_uci.iterrows():
-                st.markdown(f"- **{row['feature']}**: {row['importance']:.3f}")
-        
-        with col2:
-            st.markdown("**OULAD (Educação Online):**")
-            for idx, row in top_oulad.iterrows():
-                st.markdown(f"- **{row['feature']}**: {row['importance']:.3f}")
-        
-        st.markdown("### 💡 Insights")
-        st.info("""
-        **Combinação Estratégica:**
-        - UCI fornece insights sobre comportamento tradicional (faltas, notas)
-        - OULAD fornece insights sobre engajamento digital (cliques, atividades)
-        - Template unificado combina o melhor dos dois mundos
-        - Análise mais abrangente para educadores
-        """)
-        
-    else:
-        st.warning("Não foi possível carregar feature importance de ambos os datasets")
-        
-except Exception as e:
-    st.error(f"Erro na análise combinada: {e}")
 
 # Estatísticas dos Datasets
 st.markdown("## 📊 Estatísticas dos Datasets")
 
 try:
     # Carregar dados para estatísticas
-    from src.carregar_dados import carregar_dados_uci, carregar_dados_oulad
+    from src.carregar_dados import carregar_uci_dados, carregar_oulad_dados
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("### 📚 Dataset UCI")
         try:
-            df_uci = carregar_dados_uci()
+            df_uci = carregar_uci_dados()
             if not df_uci.empty:
                 st.markdown(f"**Total de registros:** {len(df_uci)}")
                 st.markdown(f"**Features:** {len(df_uci.columns)}")
@@ -156,7 +86,7 @@ try:
     with col2:
         st.markdown("### 🌐 Dataset OULAD")
         try:
-            df_oulad = carregar_dados_oulad()
+            df_oulad = carregar_oulad_dados()
             if not df_oulad.empty:
                 st.markdown(f"**Total de registros:** {len(df_oulad)}")
                 st.markdown(f"**Features:** {len(df_oulad.columns)}")
