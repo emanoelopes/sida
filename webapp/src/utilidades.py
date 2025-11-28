@@ -177,7 +177,7 @@ def obter_metricas_principais_oulad():
         
         # Distribuição de gênero
         if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns:
-            dist_genero = df_oulad.groupby('gender')['id_student'].nunique()
+            dist_genero = df_oulad.groupby('gender', observed=False)['id_student'].nunique()
             total_estudantes = df_oulad['id_student'].nunique()
             dist_genero_pct = (dist_genero / total_estudantes * 100)
             distribuicao_genero = {k: round(v, 1) for k, v in dist_genero_pct.to_dict().items()}
@@ -187,7 +187,7 @@ def obter_metricas_principais_oulad():
         # Faixa etária principal
         if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns:
             # Encontrar a faixa etária com mais estudantes únicos
-            idade_counts = df_oulad.groupby('age_band')['id_student'].nunique()
+            idade_counts = df_oulad.groupby('age_band', observed=False)['id_student'].nunique()
             faixa_etaria_principal = idade_counts.idxmax() if not idade_counts.empty else 'N/A'
         else:
             faixa_etaria_principal = 'N/A'
@@ -201,7 +201,7 @@ def obter_metricas_principais_oulad():
         # Região principal
         if 'region' in df_oulad.columns and 'id_student' in df_oulad.columns:
             # Encontrar a região com mais estudantes únicos
-            regiao_counts = df_oulad.groupby('region')['id_student'].nunique()
+            regiao_counts = df_oulad.groupby('region', observed=False)['id_student'].nunique()
             regiao_principal = regiao_counts.idxmax() if not regiao_counts.empty else 'N/A'
         else:
             regiao_principal = 'N/A'
@@ -265,8 +265,8 @@ def calcular_metricas_oulad(df_oulad):
             else (df_oulad['sum_click'].mean() if 'sum_click' in df_oulad.columns else 0)
         ),
         'taxa_aprovacao': (df_oulad['final_result'] == 'Pass').mean() * 100 if 'final_result' in df_oulad.columns else 0,
-        'distribuicao_genero': df_oulad.groupby('gender')['id_student'].nunique().to_dict() if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
-        'distribuicao_idade': df_oulad.groupby('age_band')['id_student'].nunique().to_dict() if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
+        'distribuicao_genero': df_oulad.groupby('gender', observed=False)['id_student'].nunique().to_dict() if 'gender' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
+        'distribuicao_idade': df_oulad.groupby('age_band', observed=False)['id_student'].nunique().to_dict() if 'age_band' in df_oulad.columns and 'id_student' in df_oulad.columns else {},
         'atividade_mais_comum': df_oulad['activity_type'].mode().iloc[0] if 'activity_type' in df_oulad.columns else 'N/A',
         'regiao_mais_comum': df_oulad['region'].mode().iloc[0] if 'region' in df_oulad.columns else 'N/A'
     }
@@ -2145,7 +2145,7 @@ def criar_graficos_distribuicao_numerica(df_usuario: pd.DataFrame) -> dict:
             
             # Gráfico de Linha - Relação entre faltas e nota final
             # Agrupar por número de faltas e calcular média das notas
-            df_agrupado = df_usuario.groupby('faltas')['resultado_final'].agg(['mean', 'count']).reset_index()
+            df_agrupado = df_usuario.groupby('faltas', observed=False)['resultado_final'].agg(['mean', 'count']).reset_index()
             df_agrupado = df_agrupado[df_agrupado['count'] >= 1]  # Pelo menos 1 aluno
             
             # Plotar linha principal
@@ -2304,7 +2304,7 @@ def criar_grafico_barras_empilhadas(df_usuario: pd.DataFrame):
             df_plot['categoria_faltas'] = 'N/A'
         
         # Calcular média das notas finais por região e categoria de faltas
-        media_por_categoria = df_plot.groupby(['regiao', 'categoria_faltas'])['resultado_final'].mean().unstack(fill_value=0)
+        media_por_categoria = df_plot.groupby(['regiao', 'categoria_faltas'], observed=False)['resultado_final'].mean().unstack(fill_value=0)
         
         # Criar gráfico de linhas
         fig, ax = plt.subplots(figsize=(14, 8))
