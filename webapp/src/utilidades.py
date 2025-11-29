@@ -28,7 +28,7 @@ def carregar_dados_oulad_cached():
     return carregar_oulad_dados()
 
 def carregar_dados_dashboard():
-    """Carrega os dados processados para o dashboard com cache"""
+    """Carrega os dados processados para o painel analítico com cache"""
     try:
         # Carregar dados UCI com cache
         df_uci = carregar_dados_uci_cached()
@@ -273,7 +273,7 @@ def calcular_metricas_oulad(df_oulad):
     return metricas
 
 def gerar_metricas_consolidadas(df_uci, df_oulad):
-    """Gera métricas consolidadas para o dashboard"""
+    """Gera métricas consolidadas para o painel analítico"""
     metricas_uci = calcular_metricas_uci(df_uci)
     metricas_oulad = calcular_metricas_oulad(df_oulad)
     
@@ -292,9 +292,9 @@ def gerar_metricas_consolidadas(df_uci, df_oulad):
     }
 
 def criar_sidebar_dashboard():
-    """Cria a barra lateral do dashboard"""
+    """Cria a barra lateral do painel analítico"""
     with st.sidebar:
-        st.markdown("### 📊 Dashboard Educacional")
+        st.markdown("### 📊 Painel Analítico")
         
         # Carregar métricas dinâmicas
         metricas_uci = obter_metricas_principais_uci()
@@ -634,7 +634,7 @@ def treinar_modelo_uci_on_demand():
         else:
             print("🔄 Preparando dados...")
         
-        # Preparar dados como na página 1_uci.py
+        # Preparar dados como na página 1_UCI.py
         Y = df_uci['G3']
         X = df_uci.drop('G3', axis=1)
         
@@ -743,7 +743,7 @@ def treinar_modelo_oulad_on_demand():
         else:
             print("🔄 Preparando dados...")
         
-        # Preparar dados como na página 2_oulad.py
+        # Preparar dados como na página 2_OULAD.py
         Y = df_oulad['final_result']
         X = df_oulad.loc[:, df_oulad.columns != 'final_result']
         

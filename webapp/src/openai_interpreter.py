@@ -140,7 +140,7 @@ def configurar_openai_key():
         Instituto UFC Virtual (IUVI)  
         Universidade Federal do Ceará (UFC)
         
-        Versão 1.0.0 - 2025
+        Versão 0.1.1 - 2025
         """)
 
 def interpretar_grafico(tipo_grafico: str, dados_contexto: Dict[str, Any]) -> str:
@@ -438,30 +438,18 @@ def criar_sidebar_landpage():
         4. Faça upload para análise
         """)
         
-        # Rodapé padrão
-        st.markdown("---")
-        st.markdown("### ℹ️ Sobre o Sistema")
-        st.caption("""
-        **SIDA - Sistema Inteligente de Análise Educacional**
-        
-        Mestrado em Tecnologia Educacional  
-        Programa de Pós-Graduação em Tecnologias Educacionais (PPGTE)  
-        Instituto UFC Virtual (IUVI)  
-        Universidade Federal do Ceará (UFC)
-        
-        Versão 1.0.0 - 2025
-        """)
+        # Rodapé - apenas badges de status
+        criar_rodape_sidebar()
 
 def criar_sidebar_padrao():
-    """Sidebar padrão para páginas internas (Dashboard, UCI, OULAD, etc.)"""
+    """Sidebar padrão para páginas internas (Painel Analítico, Análise Exploratória, etc.)"""
     with st.sidebar:
         st.markdown("### 📊 Navegação")
         st.markdown("""
         - 🏠 **Home**: Análise Customizada
-        - 📊 **Dashboard**: Visão Consolidada
-        - 📈 **UCI**: Análise Detalhada
-        - 🌐 **OULAD**: Análise Detalhada
-        - 🔍 **Analisador**: Ferramenta de Análise
+        - 📊 **Painel Analítico**: Visão Consolidada
+        - 📈 **Análise Exploratória**
+          - Autosserviço
         """)
         
         st.markdown("---")
@@ -476,21 +464,10 @@ def criar_sidebar_padrao():
             st.warning("⚠️ Configure na página inicial")
         
         # Rodapé padrão (mesmo em todas as páginas)
-        st.markdown("---")
-        st.markdown("### ℹ️ Sobre o Sistema")
-        st.caption("""
-        **SIDA - Sistema Inteligente de Análise Educacional**
-        
-        Mestrado em Tecnologia Educacional  
-        Programa de Pós-Graduação em Tecnologias Educacionais (PPGTE)  
-        Instituto UFC Virtual (IUVI)  
-        Universidade Federal do Ceará (UFC)
-        
-        Versão 1.0.0 - 2025
-        """)
+        criar_rodape_sidebar()
 
 def criar_rodape_sidebar():
-    """Rodapé padronizado para todas as sidebars"""
+    """Rodapé padronizado para todas as sidebars - informações do sistema e badges"""
     st.markdown("---")
     st.markdown("### ℹ️ Sobre o Sistema")
     st.caption("""
@@ -501,5 +478,16 @@ def criar_rodape_sidebar():
     Instituto UFC Virtual (IUVI)  
     Universidade Federal do Ceará (UFC)
     
-    Versão 1.0.0 - 2025
+    Versão 0.1.1 - 2025
     """)
+    
+    # Badges de status do projeto
+    st.markdown("""
+    <div style="margin-top: 10px; text-align: center;">
+        <img src="https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white" alt="Python 3.9+"/>
+        <img src="https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit"/>
+        <img src="https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white" alt="Docker"/>
+        <img src="https://img.shields.io/badge/License-GPL--3.0-green" alt="License GPL-3.0"/>
+        <img src="https://img.shields.io/badge/Version-0.1.1-orange" alt="Version"/>
+    </div>
+    """, unsafe_allow_html=True)

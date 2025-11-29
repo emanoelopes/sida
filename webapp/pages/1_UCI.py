@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pickle
+from src.openai_interpreter import criar_rodape_sidebar
 
 st.set_page_config(
     page_title="Análise Exploratória dos Dados - UCI",
@@ -63,12 +64,6 @@ with st.sidebar:
         ["Box Plot", "Histograma", "Violin Plot"]
     )
     st.markdown("---")
-    st.markdown("### Experimente")
-    analyzer = st.selectbox(
-        "Analisador",
-        ["UCI EDA", "OULAD EDA"]
-    ) 
-    st.markdown("---")
     st.markdown("## Informações")
     # Calcular estudantes únicos baseado em características demográficas
     colunas_id = ['school', 'sex', 'age', 'address', 'famsize', 'Pstatus', 'Medu', 'Fedu', 'Mjob', 'Fjob', 'reason', 'guardian']
@@ -83,8 +78,8 @@ with st.sidebar:
     st.write(f"**Número de Valores Duplicados:** {df.duplicated().sum()}")
     st.markdown("---")
     
-    ### footer
-    st.markdown("Mestrado em Tecnologia Educacional - UFC")
+    # Rodapé com badges de status (igual ao da home)
+    criar_rodape_sidebar()
 
 # Create visualization section
 st.markdown("### Visualização das distribuições dos dados numéricos ")
@@ -489,4 +484,4 @@ with open('uci.pkl', 'wb') as f:
 # Seção de análise interativa (PyGWalker movido para o dashboard principal)
 st.markdown("---")
 st.markdown("### 🔍 Análise Interativa")
-st.info("💡 Para análise interativa dos dados, utilize a aba 'Feature Importance' no dashboard principal, onde você pode ativar o PyGWalker de forma opcional.")
+st.info("💡 Para análise interativa dos dados, utilize a aba 'Feature Importance' no painel analítico principal, onde você pode ativar o PyGWalker de forma opcional.")
