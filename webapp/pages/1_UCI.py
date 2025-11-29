@@ -192,7 +192,23 @@ O diagrama exibe uma distribuição bimodal das notas finais, sinalizando a pres
 
 st.markdown('## Explorando os valores categóricos')
 
-st.session_state['cat_columns'] = df.select_dtypes('object').describe().T
+# Criar tabela com distribuição de valores categóricos
+cat_columns = df.select_dtypes('object').columns
+cat_distribution = []
+
+for col in cat_columns:
+    value_counts = df[col].value_counts()
+    for value, count in value_counts.items():
+        percentage = (count / len(df)) * 100
+        cat_distribution.append({
+            'Coluna': col,
+            'Valor': value,
+            'Frequência': count,
+            'Percentual (%)': round(percentage, 2)
+        })
+
+cat_df = pd.DataFrame(cat_distribution)
+st.session_state['cat_columns'] = cat_df
 
 st.dataframe(st.session_state['cat_columns'], width='content')
 
