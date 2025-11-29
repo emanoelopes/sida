@@ -1,5 +1,5 @@
 """
-Dashboard Consolidado - Visão geral dos datasets UCI e OULAD
+Painel Analítico - Visão geral dos datasets UCI e OULAD
 Página separada para análise consolidada dos datasets
 """
 
@@ -15,7 +15,7 @@ from src.openai_interpreter import criar_sidebar_padrao
 
 # Configuração da página
 st.set_page_config(
-    page_title="Dashboard Educacional",
+    page_title="Painel Analítico",
     page_icon="📊",
     layout="wide"
 )
@@ -24,7 +24,7 @@ st.set_page_config(
 criar_sidebar_padrao()
 
 # Título principal
-st.title("📊 Dashboard Consolidado")
+st.title("📊 Painel Analítico")
 st.markdown("Visão geral dos datasets UCI e OULAD")
 
 # Métricas principais
@@ -131,7 +131,7 @@ st.markdown("""
    - `utilidades.py`: Lógica de negócio
    - `openai_interpreter.py`: Interpretação IA
    - `home.py`: Landing page
-   - `1_dashboard.py`: Dashboard consolidado
+   - `1_Painel Analítico.py`: Painel Analítico consolidado
 
 2. **Extensibilidade**
    - Fácil adição de novos datasets
@@ -150,5 +150,5 @@ Programa de Pós-Graduação em Tecnologias Educacionais (PPGTE)
 Instituto UFC Virtual (IUVI)  
 Universidade Federal do Ceará (UFC)
 
-Versão 1.0.0 - 2025
+Versão 0.1.1 - 2025
 """)

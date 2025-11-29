@@ -151,5 +151,5 @@ Programa de Pós-Graduação em Tecnologias Educacionais (PPGTE)
 Instituto UFC Virtual (IUVI)  
 Universidade Federal do Ceará (UFC)
 
-Versão 1.0.0 - 2025
+Versão 0.1.1 - 2025
 """)

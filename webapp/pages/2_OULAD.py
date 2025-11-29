@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import missingno as msno
 import numpy as np
 import pickle
+from src.openai_interpreter import criar_rodape_sidebar
 
 
 st.set_page_config(
@@ -182,6 +183,16 @@ for col in merged_df.select_dtypes(include='object').columns:
 
 # st.write("Merged DataFrame after handling missing values:")
 # st.dataframe(merged_df.isnull().sum())
+
+# Sidebar com rodapé
+with st.sidebar:
+    st.markdown("### 📊 Informações")
+    st.info("""
+    Esta página apresenta uma análise exploratória dos dados do OULAD (Open University Learning Analytics Dataset).
+    """)
+    st.markdown("---")
+    # Rodapé com badges de status (igual ao da home)
+    criar_rodape_sidebar()
 
 st.write('# Análise Exploratória de Dados (EDA) - OULAD')
 
