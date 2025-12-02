@@ -5,6 +5,30 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+def traduzir_tipo_atividade(activity_type):
+    """Traduz tipos de atividades do OULAD de inglês para português"""
+    traducao_atividades = {
+        'outcontent': 'Conteúdo Externo',
+        'forumng': 'Fórum NG',
+        'subpage': 'Subpágina',
+        'resource': 'Recurso',
+        'url': 'URL',
+        'homepage': 'Página Inicial',
+        'quiz': 'Quiz',
+        'ouwiki': 'Wiki da Open University',
+        'dataplus': 'DataPlus',
+        'glossary': 'Glossário',
+        'htmlactivity': 'Atividade HTML',
+        'questionnaire': 'Questionário',
+        'page': 'Página',
+        'folder': 'Pasta',
+        'oucollaborate': 'Atividades Colaborativas',
+        'dualpane': 'Painel Duplo',
+        'repeatactivity': 'Atividade Repetida',
+        'sharedsubpage': 'Subpágina Compartilhada'
+    }
+    return traducao_atividades.get(activity_type, activity_type)
+
 def criar_grafico_distribuicao_notas(df_uci):
     """Cria gráfico de distribuição de notas para UCI"""
     if df_uci.empty or 'G3' not in df_uci.columns:
@@ -87,9 +111,13 @@ def criar_grafico_atividades_oulad(df_oulad):
     if df_oulad.empty or 'activity_type' not in df_oulad.columns:
         return None
     
+    # Criar cópia do dataframe para traduzir os tipos de atividades
+    df_traduzido = df_oulad.copy()
+    df_traduzido['activity_type'] = df_traduzido['activity_type'].apply(traduzir_tipo_atividade)
+    
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.countplot(data=df_oulad, x='activity_type', 
-                  order=df_oulad['activity_type'].value_counts().index, ax=ax)
+    sns.countplot(data=df_traduzido, x='activity_type', 
+                  order=df_traduzido['activity_type'].value_counts().index, ax=ax)
     ax.set_title("Distribuição de Atividades por Tipo (OULAD)")
     ax.set_xlabel("Tipo de Atividade")
     ax.set_ylabel("Contagem")
@@ -362,7 +390,8 @@ def criar_grafico_sugerido_oulad():
         # 3. Distribuição de atividades
         if 'activity_type' in df_oulad.columns:
             atividades_counts = df_oulad['activity_type'].value_counts().head(6)  # Top 6 atividades
-            atividades = atividades_counts.index.tolist()
+            # Traduzir os tipos de atividades
+            atividades = [traduzir_tipo_atividade(atividade) for atividade in atividades_counts.index.tolist()]
             cliques = atividades_counts.values.tolist()
             
             axes[1, 0].barh(atividades, cliques, color='lightsteelblue')
