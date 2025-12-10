@@ -471,16 +471,43 @@ top_5_idx = sorted_idx[-5:][::-1]  # Reverter para ter a mais importante primeir
 top_5_features = X_test_cleaned.columns[top_5_idx]
 top_5_importances = result.importances_mean[top_5_idx]
 
+# Traduzir nomes das variáveis para exibição
+feature_translation = {
+    'date_unregistration': 'Data de cancelamento',
+    'date_registration': 'Data de registro',
+    'age_band': 'Faixa etária',
+    'studied_credits': 'Créditos cursados',
+    'studied_credits_x': 'Créditos cursados',
+    'studied_credits_y': 'Créditos cursados',
+    'score': 'Nota',
+    'score_x': 'Nota',
+    'score_y': 'Nota',
+    'activity_type': 'Tipo de atividade',
+    'clicks': 'Cliques',
+    'gender': 'Gênero',
+    'region': 'Região',
+    'disability': 'Deficiência',
+    'highest_education': 'Escolaridade',
+    'imd_band': 'Faixa IMD',
+    'num_of_prev_attempts': 'Tentativas anteriores',
+    'module_presentation_length': 'Duração do módulo',
+}
+top_5_features_pt = [feature_translation.get(f, f) for f in top_5_features]
+
 # Criar gráfico de barras
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.barh(range(len(top_5_features)), top_5_importances)
 ax.set_yticks(range(len(top_5_features)))
-ax.set_yticklabels(top_5_features)
-ax.set_xlabel('Importância da Permutação')
-ax.set_title('Top 5 Features Mais Importantes (Permutation Importances)')
+ax.set_yticklabels(top_5_features_pt)
+ax.set_xlabel('Importância por Permutação')
+ax.set_title('Top 5 Variáveis Mais Importantes (OULAD)')
 ax.invert_yaxis()  # Mostrar a feature mais importante no topo
 fig.tight_layout()
 st.pyplot(fig)
+st.markdown(
+    "Histograma de importância das variáveis (método de permutação). "
+    "Valores mais altos indicam maior impacto na previsão do resultado final."
+)
 plt.clf()
 
 st.markdown("## Conclusão")
