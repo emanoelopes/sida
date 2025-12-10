@@ -1118,6 +1118,7 @@ def criar_grafico_feature_importance_oulad():
         'imd_band': 'Faixa IMD',
         'num_of_prev_attempts': 'Tentativas anteriores',
         'module_presentation_length': 'Duração do módulo',
+        'cancelou': 'Cancelou',
     }
     df_importance['feature_pt'] = df_importance['feature'].map(feature_translation).fillna(df_importance['feature'])
     

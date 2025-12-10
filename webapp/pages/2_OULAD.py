@@ -281,37 +281,41 @@ st.dataframe(merged_df.select_dtypes('object').describe().T)
 Por meio da análise dos dados categóricos, os estudantes são, na sua maioria, do gênero masculino, até 35 anos, que realizaram a atividade do tipo fórum na plataforma e foram aprovados.
 """
 
-st.write('## Distribuição de Estudantes por Idade')
-plt.figure(figsize=(10, 6))
-# Contar estudantes únicos por faixa etária
-idade_counts = merged_df.groupby('age_band')['id_student'].nunique()
-sns.barplot(x=idade_counts.index, y=idade_counts.values)
-plt.title('Distribuição de Estudantes por Idade')
-plt.xlabel('Faixa Etária')
-plt.ylabel('Número de Estudantes Únicos')
-plt.xticks(rotation=45)
-st.pyplot(plt)
-plt.clf()
+col1, col2 = st.columns(2)
 
-'''
-Este histograma revela que a maioria dos estudantes se encontra na faixa etária de 35 a 55 anos e a faixa etária dentro do grupo 0-35 é o segundo maior contingente, enquanto estudantes com mais de 55 anos são a minoria.
-'''
+with col1:
+    st.write('## Distribuição de Estudantes por Idade')
+    # Contar estudantes únicos por faixa etária
+    idade_counts = merged_df.groupby('age_band')['id_student'].nunique()
+    fig_idade, ax_idade = plt.subplots(figsize=(6, 4))
+    sns.barplot(x=idade_counts.index, y=idade_counts.values, ax=ax_idade)
+    ax_idade.set_title('Distribuição de Estudantes por Idade')
+    ax_idade.set_xlabel('Faixa Etária')
+    ax_idade.set_ylabel('Número de Estudantes Únicos')
+    ax_idade.tick_params(axis='x', rotation=45)
+    st.pyplot(fig_idade)
 
+    '''
+    Este histograma revela que a maioria dos estudantes se encontra na faixa etária de 35 a 55 anos e a faixa etária dentro do grupo 0-35 é o segundo maior contingente, enquanto estudantes com mais de 55 anos são a minoria.
+    '''
 
-st.write('## Distribuição de Estudantes por Gênero')
-plt.figure(figsize=(6, 6))
-# Contar estudantes únicos por gênero
-genero_counts = merged_df.groupby('gender')['id_student'].nunique()
-sns.barplot(x=genero_counts.index, y=genero_counts.values)
-plt.title('Distribuição de Estudantes por Gênero')
-plt.xlabel('Gênero')
-plt.ylabel('Número de Estudantes Únicos')
-st.pyplot(plt)
-plt.clf()
+with col2:
+    st.write('## Distribuição de Estudantes por Gênero')
+    # Contar estudantes únicos por gênero
+    genero_counts = merged_df.groupby('gender')['id_student'].nunique()
+    fig_genero, ax_genero = plt.subplots(figsize=(6, 4))
+    sns.barplot(x=genero_counts.index, y=genero_counts.values, ax=ax_genero)
+    ax_genero.set_title('Distribuição de Estudantes por Gênero')
+    ax_genero.set_xlabel('Gênero')
+    ax_genero.set_ylabel('Número de Estudantes Únicos')
+    st.pyplot(fig_genero)
 
-'''
-A diferença na quantidade entre os gêneros masculino e feminino é algo em torno de 60% 
-'''
+    # Espaço extra para alinhar com o texto do gráfico ao lado
+    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+
+    '''
+    A diferença na quantidade entre os gêneros masculino e feminino é algo em torno de 60% 
+    '''
 
 st.write('## Distribuição de Estudantes por Região')
 plt.figure(figsize=(10, 6))
@@ -354,7 +358,8 @@ A distribuição é relativamente decrescente e sem discrepâncias abruptas.
 """
 
 st.write('## Distribuição dos Estudantes por Resultado Final')
-plt.figure(figsize=(6, 6))
+# Tamanho reduzido para evitar ocupar toda a largura
+fig_resultado, ax_resultado = plt.subplots(figsize=(6, 4))
 # Dicionário de tradução dos resultados finais
 traducao_resultados = {
     'Pass': 'Aprovado',
@@ -368,12 +373,11 @@ resultado_counts = merged_df.groupby('final_result')['id_student'].nunique().sor
 # Traduzir os índices (resultados) - criar novo Series com índices traduzidos
 resultados_traduzidos = [traducao_resultados.get(x, x) for x in resultado_counts.index]
 resultado_counts_traduzido = pd.Series(resultado_counts.values, index=resultados_traduzidos)
-sns.barplot(x=resultado_counts_traduzido.index, y=resultado_counts_traduzido.values)
-plt.title('Distribuição dos Estudantes por Resultado Final')
-plt.xlabel('Resultado Final')
-plt.ylabel('Número de Estudantes Únicos')
-st.pyplot(plt)
-plt.clf()
+sns.barplot(x=resultado_counts_traduzido.index, y=resultado_counts_traduzido.values, ax=ax_resultado)
+ax_resultado.set_title('Distribuição dos Estudantes por Resultado Final')
+ax_resultado.set_xlabel('Resultado Final')
+ax_resultado.set_ylabel('Número de Estudantes Únicos')
+st.pyplot(fig_resultado)
 
 '''
 A grande maioria dos estudantes obteve o resultado "Aprovado", superando vastamente as outras categorias. Os resultados de "Aprovação com Mérito", "Desistente" e "Reprovado" representam uma proporção muito menor do total de alunos, indicando uma alta taxa de sucesso geral.
@@ -491,6 +495,7 @@ feature_translation = {
     'imd_band': 'Faixa IMD',
     'num_of_prev_attempts': 'Tentativas anteriores',
     'module_presentation_length': 'Duração do módulo',
+    'cancelou': 'Cancelou',
 }
 top_5_features_pt = [feature_translation.get(f, f) for f in top_5_features]
 
