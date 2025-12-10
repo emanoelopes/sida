@@ -125,19 +125,6 @@ def show_basic_info(df):
 # st.pyplot(fig)
 
 
-# Imputando valores ausentes em 'date_registration' e 'date_unregistration'
-# Criar uma cópia explícita do dataframe para evitar SettingWithCopyWarning
-df_studentregistration_copy = df_studentregistration.copy()
-
-mean_date_registration = df_studentregistration_copy['date_registration'].mean()
-df_studentregistration_copy['date_unregistration'] = df_studentregistration_copy['date_unregistration'].fillna(df_studentregistration_copy['date_unregistration'].max())
-df_studentregistration_copy['date_registration'] = df_studentregistration_copy['date_registration'].fillna(mean_date_registration)
-
-# Display null values after imputation
-print("Null values after imputing date_registration and date_unregistration:")
-# st.write(df_studentregistration_copy.isnull().sum())
-
-
 new_vle = df_vle.drop(['week_from','week_to'],axis=1)
 show_basic_info(new_vle)
 
@@ -151,8 +138,21 @@ show_basic_info(new_studentInfo)
 # Criar uma cópia explícita do dataframe para evitar SettingWithCopyWarning
 df_student_registration_copy = df_studentregistration.copy()
 
+# Criar variável binária indicando se o estudante cancelou o registro
+df_student_registration_copy['cancelou'] = df_student_registration_copy['date_unregistration'].notna().astype(int)
+
+# Preencher date_unregistration com valor alto quando ausente (para diferenciar de valores reais)
+# Usar max + 1000 para garantir que seja claramente distinto de qualquer data real
+max_date_unregistration = df_student_registration_copy['date_unregistration'].max()
+if pd.notna(max_date_unregistration):
+    valor_nao_cancelou = max_date_unregistration + 1000
+else:
+    # Se todos os valores forem NaN, usar um valor padrão alto
+    valor_nao_cancelou = 999999
+df_student_registration_copy['date_unregistration'] = df_student_registration_copy['date_unregistration'].fillna(valor_nao_cancelou)
+
+# Preencher date_registration com a média quando ausente
 mean_date_registration = df_student_registration_copy['date_registration'].mean()
-df_student_registration_copy['date_unregistration'] = df_student_registration_copy['date_unregistration'].fillna(df_student_registration_copy['date_unregistration'].max())
 df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
 
 # Junção dos dados
@@ -170,8 +170,8 @@ st.session_state['merged_df'] = merged_df
 # Merge with courses dataframe
 merged_df = pd.merge(merged_df, df_courses, on=['code_presentation'], how='inner')
 
-# Merge with studentRegistration dataframe
-merged_df = pd.merge(merged_df, df_studentregistration, on=['code_presentation','id_student'], how='inner')
+# Merge with studentRegistration dataframe (usando a versão processada com variável cancelou)
+merged_df = pd.merge(merged_df, df_student_registration_copy, on=['code_presentation','id_student'], how='inner')
 
 # Imputing missing values for numerical columns with the mean
 for col in merged_df.select_dtypes(include=np.number).columns:
@@ -233,9 +233,34 @@ Com base no histograma, a maioria dos estudantes obteve notas finais elevadas, c
 
 st.write('## Distribuição de Atividades por Tipo')
 plt.figure(figsize=(10, 6))
+# Dicionário de tradução dos tipos de atividades
+traducao_atividades = {
+    'outcontent': 'Conteúdo Externo',
+    'forumng': 'Fórum NG',
+    'subpage': 'Subpágina',
+    'resource': 'Recurso',
+    'url': 'URL',
+    'homepage': 'Página Inicial',
+    'quiz': 'Quiz',
+    'ouwiki': 'Wiki da Open University',
+    'dataplus': 'DataPlus',
+    'glossary': 'Glossário',
+    'htmlactivity': 'Atividade HTML',
+    'questionnaire': 'Questionário',
+    'page': 'Página',
+    'folder': 'Pasta',
+    '   llaborate': 'Atividades Colaborativas',
+    'dualpane': 'Painel Duplo',
+    'repeatactivity': 'Atividade Repetida',
+    'sharedsubpage': 'Subpágina Compartilhada'
+}
+
 # Contar atividades únicas por tipo (não estudantes únicos, pois é sobre atividades)
 atividade_counts = merged_df['activity_type'].value_counts()
-sns.barplot(x=atividade_counts.index, y=atividade_counts.values)
+# Traduzir os índices (tipos de atividades) - criar novo Series com índices traduzidos
+atividades_traduzidas = [traducao_atividades.get(x, x) for x in atividade_counts.index]
+atividade_counts_traduzido = pd.Series(atividade_counts.values, index=atividades_traduzidas)
+sns.barplot(x=atividade_counts_traduzido.index, y=atividade_counts_traduzido.values)
 plt.title('Distribuição de Atividades por Tipo')
 plt.xlabel('Tipo de Atividade')
 plt.ylabel('Número de Atividades')
@@ -244,7 +269,7 @@ st.pyplot(plt)
 plt.clf()
 
 '''
-A atividade mais realizada é a 'outcontent' com quase o dobro de execuções em relação à segunda posição que é 'forumng'. A distribuição é acentuadamente desigual, com poucas atividades (como "forumng" e "subpage") tendo uso moderado.
+A atividade mais realizada é a 'Conteúdo Externo' com quase o dobro de execuções em relação à segunda posição que é 'Fórum NG'. A distribuição é acentuadamente desigual, com poucas atividades (como "Fórum NG" e "Subpágina") tendo uso moderado.
 '''
 
 
@@ -290,9 +315,32 @@ A diferença na quantidade entre os gêneros masculino e feminino é algo em tor
 
 st.write('## Distribuição de Estudantes por Região')
 plt.figure(figsize=(10, 6))
+# Dicionário de tradução das regiões
+traducao_regioes = {
+    'East Anglian Region': 'Região de East Anglia',
+    'East Midlands Region': 'Região dos Midlands Orientais',
+    'Ireland': 'Irlanda',
+    'London Region': 'Região de Londres',
+    'North Region': 'Região Norte',
+    'North East Region': 'Região Nordeste',
+    'North Western Region': 'Região Noroeste',
+    'North West Region': 'Região Noroeste',
+    'Scotland': 'Escócia',
+    'South East Region': 'Região Sudeste',
+    'South Region': 'Região Sul',
+    'South West Region': 'Região Sudoeste',
+    'Wales': 'País de Gales',
+    'West Midlands Region': 'Região dos Midlands Ocidentais',
+    'Yorkshire and The Humber Region': 'Região de Yorkshire e Humber',
+    'Yorkshire and the Humber Region': 'Região de Yorkshire e Humber'
+}
+
 # Contar estudantes únicos por região
 regiao_counts = merged_df.groupby('region')['id_student'].nunique().sort_values(ascending=False)
-sns.barplot(x=regiao_counts.index, y=regiao_counts.values)
+# Traduzir os índices (regiões) - criar novo Series com índices traduzidos
+regioes_traduzidas = [traducao_regioes.get(x, x) for x in regiao_counts.index]
+regiao_counts_traduzido = pd.Series(regiao_counts.values, index=regioes_traduzidas)
+sns.barplot(x=regiao_counts_traduzido.index, y=regiao_counts_traduzido.values)
 plt.title('Distribuição de Estudantes por Região')
 plt.xlabel('Região')
 plt.ylabel('Número de Estudantes Únicos')
@@ -301,14 +349,26 @@ st.pyplot(plt)
 plt.clf()
 
 """
-As regiões "South West Region" e "South Region" detêm a maior concentração de estudantes, resultando em uma leve predominância do sul da Inglaterra. A distribuição é relativamente decrescente e sem discrepâncias abruptas.
+As regiões do sudeste sul detêm a maior concentração de estudantes, pode ter relação com a presença de importantes universidades na região: Universidade de Cambridge, Universidade de Essex, Universidade de Artes de Norwich, entre outras.
+A distribuição é relativamente decrescente e sem discrepâncias abruptas.
 """
 
 st.write('## Distribuição dos Estudantes por Resultado Final')
 plt.figure(figsize=(6, 6))
+# Dicionário de tradução dos resultados finais
+traducao_resultados = {
+    'Pass': 'Aprovado',
+    'Distinction': 'Aprovação com Mérito',
+    'Withdrawn': 'Desistente',
+    'Fail': 'Reprovado'
+}
+
 # Contar estudantes únicos por resultado final
 resultado_counts = merged_df.groupby('final_result')['id_student'].nunique().sort_values(ascending=False)
-sns.barplot(x=resultado_counts.index, y=resultado_counts.values)
+# Traduzir os índices (resultados) - criar novo Series com índices traduzidos
+resultados_traduzidos = [traducao_resultados.get(x, x) for x in resultado_counts.index]
+resultado_counts_traduzido = pd.Series(resultado_counts.values, index=resultados_traduzidos)
+sns.barplot(x=resultado_counts_traduzido.index, y=resultado_counts_traduzido.values)
 plt.title('Distribuição dos Estudantes por Resultado Final')
 plt.xlabel('Resultado Final')
 plt.ylabel('Número de Estudantes Únicos')
@@ -316,7 +376,7 @@ st.pyplot(plt)
 plt.clf()
 
 '''
-a grande maioria dos estudantes obteve o resultado "Pass" (Aprovado), superando vastamente as outras categorias. Os resultados de "Distinction" (Aprovação com mérito), "Withdrawn" (Desistente) e "Fail" (Reprovado) representam uma proporção muito menor do total de alunos, indicando uma alta taxa de sucesso geral.
+A grande maioria dos estudantes obteve o resultado "Aprovado", superando vastamente as outras categorias. Os resultados de "Aprovação com Mérito", "Desistente" e "Reprovado" representam uma proporção muito menor do total de alunos, indicando uma alta taxa de sucesso geral.
 '''
 
 st.markdown('## Analisando  a importância das classes (feature importance)')
@@ -376,29 +436,52 @@ st.markdown("Modelo treinado com sucesso!")
 st.markdown("Avaliando do modelo...")
 
 predictions = ml_model.predict(X_test)
-from sklearn.metrics import confusion_matrix, classification_report
-
-# st.write(classification_report(y_test, predictions, zero_division=0))
-# st.write(confusion_matrix(y_test, predictions))
-
-from sklearn.inspection import permutation_importance
-import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Drop rows with NaN in y_test
 nan_rows_test = y_test.isnull()
 X_test_cleaned = X_test[~nan_rows_test].copy()
 y_test_cleaned = y_test[~nan_rows_test].copy()
+predictions_cleaned = ml_model.predict(X_test_cleaned)
+
+# Exibir métricas do modelo
+st.markdown("### Métricas de Avaliação do Modelo")
+
+# Calcular métricas individuais
+accuracy = accuracy_score(y_test_cleaned, predictions_cleaned)
+precision = precision_score(y_test_cleaned, predictions_cleaned, average='weighted', zero_division=0)
+recall = recall_score(y_test_cleaned, predictions_cleaned, average='weighted', zero_division=0)
+f1 = f1_score(y_test_cleaned, predictions_cleaned, average='weighted', zero_division=0)
+
+# Criar tabela com as métricas
+metricas_df = pd.DataFrame({
+    'Métrica': ['Acurácia', 'Precisão (weighted)', 'Recall (weighted)', 'F1-Score (weighted)'],
+    'Valor': [accuracy, precision, recall, f1]
+})
+metricas_df['Valor'] = metricas_df['Valor'].round(4)
+st.dataframe(metricas_df, use_container_width=True, hide_index=True)
+
+from sklearn.inspection import permutation_importance
 
 result = permutation_importance(ml_model, X_test_cleaned, y_test_cleaned, n_repeats=10, random_state=42, n_jobs=2)
 sorted_idx = result.importances_mean.argsort()
 
+# Pegar apenas as top 5 features mais importantes (ordenadas da mais importante para a menos importante)
+top_5_idx = sorted_idx[-5:][::-1]  # Reverter para ter a mais importante primeiro
+top_5_features = X_test_cleaned.columns[top_5_idx]
+top_5_importances = result.importances_mean[top_5_idx]
 
-fig, ax = plt.subplots(figsize=(12, 8))
-
-ax.boxplot(result.importances[sorted_idx].T, vert=False, labels=X_test_cleaned.columns[sorted_idx])
-ax.set_title("Permutation Importances (test set)")
+# Criar gráfico de barras
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.barh(range(len(top_5_features)), top_5_importances)
+ax.set_yticks(range(len(top_5_features)))
+ax.set_yticklabels(top_5_features)
+ax.set_xlabel('Importância da Permutação')
+ax.set_title('Top 5 Features Mais Importantes (Permutation Importances)')
+ax.invert_yaxis()  # Mostrar a feature mais importante no topo
 fig.tight_layout()
 st.pyplot(fig)
+plt.clf()
 
 st.markdown("## Conclusão")
 st.markdown("Nesta análise exploratória dos dados do OULAD, conseguimos entender melhor o perfil dos estudantes, suas atividades na plataforma e os fatores que influenciam seu desempenho acadêmico. Através da visualização dos dados, identificamos padrões interessantes, como a predominância de estudantes do gênero masculino e a distribuição etária dos participantes. Além disso, o treinamento do modelo de aprendizado de máquina nos permitiu avaliar a importância das diferentes características dos dados, destacando quais fatores têm maior impacto no resultado final dos estudantes. Essas informações são valiosas para instituições educacionais que buscam melhorar a experiência de aprendizagem e o suporte oferecido aos alunos. Futuras análises podem aprofundar ainda mais esses insights, explorando outras variáveis e utilizando técnicas avançadas de modelagem preditiva.")
