@@ -1,3 +1,13 @@
+# Arquivos pickle (geralmente grandes)
 *.pkl filter=lfs diff=lfs merge=lfs -text
+# Arquivos CSV grandes
 *.csv filter=lfs diff=lfs merge=lfs -text
+# Arquivos Excel
 *.xlsx filter=lfs diff=lfs merge=lfs -text
+*.xls filter=lfs diff=lfs merge=lfs -text
+# Arquivos JSON grandes (se necessário)
+*.json filter=lfs diff=lfs merge=lfs -text
+# Datasets específicos - garantir que todos os CSVs em datasets sejam rastreados
+datasets/**/*.csv filter=lfs diff=lfs merge=lfs -text
+data/**/*.csv filter=lfs diff=lfs merge=lfs -text
+data/**/*.xlsx filter=lfs diff=lfs merge=lfs -text
