@@ -210,3 +210,12 @@ datasets/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python virtual environment directories (should not be committed)
+share/
+bin/
+etc/
+lib/
+lib64/
+include/
+pyvenv.cfg
