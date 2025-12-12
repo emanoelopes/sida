@@ -476,12 +476,18 @@ from sklearn.inspection import permutation_importance
 result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
 sorted_idx = result.importances_mean.argsort()
 
-fig, ax = plt.subplots(figsize=(12, 10))
-ax.boxplot(result.importances[sorted_idx].T,
-           vert=False, labels=X_test.columns[sorted_idx])
-ax.set_title("Importância das classes")
+# Pegar apenas as top 5 features mais importantes (ordenadas da mais importante para a menos importante)
+top_5_idx = sorted_idx[-5:][::-1]  # Reverter para ter a mais importante primeiro
+top_5_features = X_test.columns[top_5_idx]
+top_5_importances = result.importances[top_5_idx].T
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.boxplot(top_5_importances, vert=False, labels=top_5_features)
+ax.set_title("Top 5 Classes Mais Importantes")
+ax.set_xlabel("Importância por Permutação")
 fig.tight_layout()
 st.pyplot(fig)
+plt.clf()
 
 """
 Foi possível observar que a notal final (G3) é fortemente influenciada, em termos absolutos, pelas notas anteriores e a quantidade de faltas.
