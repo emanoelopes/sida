@@ -1,3 +1,14 @@
+---
+title: Clareia - Sistema de Identificação de Dificuldades de Aprendizagem
+emoji: 📊
+colorFrom: blue
+colorTo: purple
+sdk: streamlit
+sdk_version: "1.52.1"
+app_file: webapp/home.py
+pinned: false
+---
+
 # Clareia: Sistema de Identifcação de Dificuldades de Aprendizagem
 
 Sistema de identificação de dificuldades de aprendzagem por meio de IA.
@@ -37,3 +48,6 @@ streamlit run webapp/home.py
 5. Fazer upload inicial dos arquivos (via `git push` para o repo do Space ou upload web).
 6. Para sincronizar manualmente com o GitHub: após cada `git push` no GitHub, repetir o push para o repositório do Space (ou usar o upload web).
 
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
