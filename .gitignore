@@ -200,6 +200,9 @@ cython_debug/
 
 # Datasets
 datasets/
+# Exceções: permitir CSVs de datasets para Git LFS
+!datasets/oulad_data/*.csv
+!datasets/uci_data/*.csv
 
 # Continue extensions
 .continue/
