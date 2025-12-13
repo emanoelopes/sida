@@ -198,10 +198,13 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Datasets
-datasets/
-# Exceções: permitir CSVs de datasets para Git LFS
+# Datasets (mas permitir CSVs para Git LFS)
+datasets/*
+!datasets/oulad_data/
+!datasets/uci_data/
+datasets/oulad_data/*
 !datasets/oulad_data/*.csv
+datasets/uci_data/*
 !datasets/uci_data/*.csv
 
 # Continue extensions

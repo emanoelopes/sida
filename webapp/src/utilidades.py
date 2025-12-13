@@ -1073,28 +1073,123 @@ def calcular_feature_importance_oulad():
         y_test_cleaned = y_test[~nan_rows_test].copy()
         
         # Garantir que todas as colunas tenham tipos corretos
-        # Converter colunas não numéricas para object (categóricas)
-        for col in X_test_cleaned.columns:
-            if X_test_cleaned[col].dtype not in [np.number, 'object']:
-                # Tentar converter para numérico primeiro
-                try:
-                    X_test_cleaned[col] = pd.to_numeric(X_test_cleaned[col], errors='coerce')
-                    # Se ainda não for numérico, converter para string/object
-                    if X_test_cleaned[col].dtype not in [np.number]:
-                        X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
-                except:
-                    X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
-        
-        # Garantir que colunas numéricas não tenham valores infinitos
+        # Primeiro, identificar colunas numéricas e categóricas
         numeric_cols = X_test_cleaned.select_dtypes(include=[np.number]).columns
+        categorical_cols = X_test_cleaned.select_dtypes(include=['object', 'category']).columns
+        
+        # Garantir que colunas numéricas não tenham valores infinitos ou NaN problemáticos
         for col in numeric_cols:
             X_test_cleaned[col] = pd.to_numeric(X_test_cleaned[col], errors='coerce').fillna(0)
             X_test_cleaned[col] = X_test_cleaned[col].replace([np.inf, -np.inf], 0)
         
-        # Garantir que colunas categóricas sejam do tipo object
-        categorical_cols = X_test_cleaned.select_dtypes(include=['object']).columns
+        # Garantir que TODAS as colunas categóricas sejam explicitamente convertidas para string
+        # Isso é crítico para evitar erros de conversão
+        # Especialmente importante para colunas como 'activity_type' que contêm valores como 'homepage'
         for col in categorical_cols:
-            X_test_cleaned[col] = X_test_cleaned[col].astype(str).replace('nan', np.nan).astype('object')
+            # Converter todos os valores para string explicitamente
+            X_test_cleaned[col] = X_test_cleaned[col].apply(
+                lambda x: str(x) if pd.notna(x) and x != '' else 'missing'
+            )
+            # Garantir que seja do tipo object (categórica)
+            X_test_cleaned[col] = X_test_cleaned[col].astype('object')
+        
+        # Garantir que colunas conhecidas como categóricas sejam explicitamente tratadas
+        known_categorical_cols = ['activity_type', 'gender', 'region', 'highest_education', 
+                                  'imd_band', 'age_band', 'disability', 'final_result',
+                                  'assessment_type', 'code_module', 'code_presentation']
+        for col in known_categorical_cols:
+            if col in X_test_cleaned.columns:
+                # Forçar conversão para string e depois object
+                X_test_cleaned[col] = X_test_cleaned[col].apply(
+                    lambda x: str(x) if pd.notna(x) and x != '' else 'missing'
+                ).astype('object')
+        
+        # Tratar colunas que não são nem numéricas nem categóricas
+        other_cols = set(X_test_cleaned.columns) - set(numeric_cols) - set(categorical_cols)
+        for col in other_cols:
+            # Tentar converter para numérico primeiro
+            try:
+                X_test_cleaned[col] = pd.to_numeric(X_test_cleaned[col], errors='coerce')
+                if X_test_cleaned[col].isna().all():
+                    # Se todas as conversões falharam, tratar como categórica
+                    X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
+                else:
+                    # Preencher NaN com 0
+                    X_test_cleaned[col] = X_test_cleaned[col].fillna(0)
+            except:
+                # Se falhar, tratar como categórica
+                X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
+        
+        status_text.text("🔄 Testando modelo com dados de exemplo...")
+        progress_bar.progress(80)
+        
+        # Testar se o modelo consegue processar os dados antes de calcular feature importance
+        # Identificar e remover colunas problemáticas
+        problematic_cols = []
+        test_sample = X_test_cleaned.head(1).copy()
+        
+        for col in test_sample.columns:
+            try:
+                # Tentar fazer predição apenas com esta coluna para identificar problemas
+                test_df = pd.DataFrame({col: test_sample[col]})
+                # Não vamos testar coluna por coluna, mas sim identificar tipos problemáticos
+                if test_sample[col].dtype == 'object':
+                    # Verificar se há valores que não são strings válidas
+                    non_string_values = test_sample[col].apply(lambda x: not isinstance(x, (str, type(None))))
+                    if non_string_values.any():
+                        problematic_cols.append(col)
+            except:
+                problematic_cols.append(col)
+        
+        # Remover colunas problemáticas se houver
+        if problematic_cols:
+            st.warning(f"⚠️ Removendo colunas problemáticas: {problematic_cols}")
+            X_test_cleaned = X_test_cleaned.drop(columns=problematic_cols, errors='ignore')
+        
+        # Testar se o modelo consegue processar os dados
+        try:
+            # Tentar fazer uma predição de exemplo para verificar se os dados estão corretos
+            _ = model.predict(X_test_cleaned.head(1))
+        except Exception as test_error:
+            st.warning(f"⚠️ Erro ao testar modelo com dados: {test_error}")
+            st.info("💡 Tentando ajustar tipos de dados...")
+            
+            # Tentar converter todas as colunas categóricas explicitamente
+            for col in X_test_cleaned.columns:
+                if X_test_cleaned[col].dtype == 'object':
+                    # Garantir que todos os valores sejam strings válidas
+                    X_test_cleaned[col] = X_test_cleaned[col].apply(lambda x: str(x) if pd.notna(x) else 'missing')
+                    X_test_cleaned[col] = X_test_cleaned[col].astype('object')
+            
+            # Tentar novamente
+            try:
+                _ = model.predict(X_test_cleaned.head(1))
+            except Exception as test_error2:
+                # Se ainda falhar, tentar identificar a coluna específica do erro
+                error_msg = str(test_error2)
+                if "'homepage'" in error_msg or "homepage" in error_msg:
+                    # Remover coluna 'homepage' ou similar se existir
+                    homepage_cols = [col for col in X_test_cleaned.columns if 'homepage' in col.lower() or 'activity_type' in col.lower()]
+                    if homepage_cols:
+                        st.warning(f"⚠️ Removendo colunas relacionadas a 'homepage': {homepage_cols}")
+                        X_test_cleaned = X_test_cleaned.drop(columns=homepage_cols, errors='ignore')
+                        try:
+                            _ = model.predict(X_test_cleaned.head(1))
+                        except:
+                            st.error(f"❌ Não foi possível processar os dados mesmo após remover colunas problemáticas: {test_error2}")
+                            progress_bar.empty()
+                            status_text.empty()
+                            return pd.DataFrame()
+                    else:
+                        st.error(f"❌ Não foi possível processar os dados mesmo após ajustes: {test_error2}")
+                        progress_bar.empty()
+                        status_text.empty()
+                        return pd.DataFrame()
+                else:
+                    st.error(f"❌ Não foi possível processar os dados mesmo após ajustes: {test_error2}")
+                    progress_bar.empty()
+                    status_text.empty()
+                    return pd.DataFrame()
         
         status_text.text("🔄 Calculando feature importance...")
         progress_bar.progress(85)
@@ -1102,12 +1197,18 @@ def calcular_feature_importance_oulad():
         # OTIMIZAÇÃO: Menos repetições e mais jobs
         # O modelo Pipeline fará o preprocessing automaticamente
         try:
-            result = permutation_importance(
-                model, X_test_cleaned, y_test_cleaned, 
-                n_repeats=5,  # Reduzido de 10 para 5
-                random_state=42, 
-                n_jobs=-1  # Usar todos os cores disponíveis
-            )
+            # Verificar se o modelo é um Pipeline antes de chamar permutation_importance
+            if hasattr(model, 'named_steps') and 'preprocessor' in model.named_steps:
+                # O modelo é um Pipeline, pode passar dados brutos
+                result = permutation_importance(
+                    model, X_test_cleaned, y_test_cleaned, 
+                    n_repeats=5,  # Reduzido de 10 para 5
+                    random_state=42, 
+                    n_jobs=-1  # Usar todos os cores disponíveis
+                )
+            else:
+                # Modelo não é Pipeline, precisa pré-processar manualmente
+                raise ValueError("Modelo não é um Pipeline com preprocessor")
             sorted_idx = result.importances_mean.argsort()
             
             status_text.text("✅ Finalizando...")

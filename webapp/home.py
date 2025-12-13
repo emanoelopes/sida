@@ -3,6 +3,14 @@ Landing Page Principal - Sistema de Análise Educacional
 Página inicial com upload de template e análise completa
 """
 
+import sys
+from pathlib import Path
+
+# Adicionar o diretório webapp ao path do Python
+webapp_dir = Path(__file__).parent
+if str(webapp_dir) not in sys.path:
+    sys.path.insert(0, str(webapp_dir))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
