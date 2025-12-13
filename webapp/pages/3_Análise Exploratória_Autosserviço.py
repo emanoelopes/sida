@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Adicionar o diretório webapp ao path do Python
+webapp_dir = Path(__file__).parent.parent
+if str(webapp_dir) not in sys.path:
+    sys.path.insert(0, str(webapp_dir))
+
 import pandas as pd
 import pygwalker as pyg
 from pygwalker.api.streamlit import StreamlitRenderer

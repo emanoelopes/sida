@@ -3,6 +3,14 @@ Painel Analítico - Visão geral dos datasets UCI e OULAD
 Página separada para análise consolidada dos datasets
 """
 
+import sys
+from pathlib import Path
+
+# Adicionar o diretório webapp ao path do Python
+webapp_dir = Path(__file__).parent.parent
+if str(webapp_dir) not in sys.path:
+    sys.path.insert(0, str(webapp_dir))
+
 import streamlit as st
 import pandas as pd
 import numpy as np

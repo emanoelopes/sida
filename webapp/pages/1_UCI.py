@@ -1,4 +1,11 @@
 from pathlib import Path
+import sys
+
+# Adicionar o diretório webapp ao path do Python
+webapp_dir = Path(__file__).parent.parent
+if str(webapp_dir) not in sys.path:
+    sys.path.insert(0, str(webapp_dir))
+
 import streamlit as st
 import pandas as pd
 import os
