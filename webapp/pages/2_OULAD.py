@@ -56,17 +56,37 @@ def carregar_dados_oulad():
 
 dataframes_oulad = carregar_dados_oulad()
 
-# Se carregou do pickle processado, criar dataframes simulados para compatibilidade
+# Se carregou do pickle processado, tentar carregar CSVs também para ter DataFrames individuais
 if 'oulad_processed' in dataframes_oulad:
     df_processed = dataframes_oulad['oulad_processed']
-    # Criar dataframes vazios ou usar o processado conforme necessário
-    df_assessments = df_processed.head(10_000) if 'assessments' in df_processed.columns else pd.DataFrame()
-    df_courses = df_processed.head(10_000) if 'courses' in df_processed.columns else pd.DataFrame()
-    df_vle = df_processed.head(10_000) if 'vle' in df_processed.columns else pd.DataFrame()
-    df_studentinfo = df_processed.head(10_000) if 'studentInfo' in df_processed.columns else pd.DataFrame()
-    df_studentregistration = df_processed.head(10_000) if 'studentRegistration' in df_processed.columns else pd.DataFrame()
-    df_studentassessment = df_processed.head(10_000) if 'studentAssessment' in df_processed.columns else pd.DataFrame()
-    df_studentvle = df_processed.head(10_000) if 'studentVle' in df_processed.columns else pd.DataFrame()
+    st.info("📦 Dados carregados do pickle processado. Tentando carregar CSVs individuais para análises detalhadas...")
+    
+    # Tentar carregar CSVs individuais como fallback
+    try:
+        from src.carregar_dados import carregar_dados_oulad_raw
+        dataframes_oulad_raw = carregar_dados_oulad_raw()
+        # Usar os CSVs individuais se disponíveis
+        df_assessments = dataframes_oulad_raw.get('assessments', pd.DataFrame()).head(10_000)
+        df_courses = dataframes_oulad_raw.get('courses', pd.DataFrame()).head(10_000)
+        df_vle = dataframes_oulad_raw.get('vle', pd.DataFrame()).head(10_000)
+        df_studentinfo = dataframes_oulad_raw.get('studentInfo', pd.DataFrame()).head(10_000)
+        df_studentregistration = dataframes_oulad_raw.get('studentRegistration', pd.DataFrame()).head(10_000)
+        df_studentassessment = dataframes_oulad_raw.get('studentAssessment', pd.DataFrame()).head(10_000)
+        df_studentvle = dataframes_oulad_raw.get('studentVle', pd.DataFrame()).head(10_000)
+        # Atualizar dataframes_oulad para usar os CSVs
+        dataframes_oulad = dataframes_oulad_raw
+        st.success("✅ CSVs individuais carregados com sucesso!")
+    except Exception as e:
+        st.warning(f"⚠️ Não foi possível carregar CSVs individuais: {e}")
+        st.warning("Algumas funcionalidades podem estar limitadas. Usando dados processados.")
+        # Criar DataFrames vazios para evitar erros
+        df_assessments = pd.DataFrame()
+        df_courses = pd.DataFrame()
+        df_vle = pd.DataFrame()
+        df_studentinfo = pd.DataFrame()
+        df_studentregistration = pd.DataFrame()
+        df_studentassessment = pd.DataFrame()
+        df_studentvle = pd.DataFrame()
 else:
     # Carregou dos CSVs originais
     df_assessments = dataframes_oulad.get('assessments', pd.DataFrame()).head(10_000)
@@ -158,13 +178,36 @@ def show_basic_info(df):
 # st.pyplot(fig)
 
 
-new_vle = df_vle.drop(['week_from','week_to'],axis=1)
-show_basic_info(new_vle)
+# Remover colunas apenas se existirem e se o DataFrame não estiver vazio
+if not df_vle.empty:
+    cols_to_drop_vle = [col for col in ['week_from', 'week_to'] if col in df_vle.columns]
+    if cols_to_drop_vle:
+        new_vle = df_vle.drop(cols_to_drop_vle, axis=1)
+    else:
+        new_vle = df_vle.copy()
+    
+    if not new_vle.empty:
+        show_basic_info(new_vle)
+else:
+    new_vle = pd.DataFrame()
+    st.warning("⚠️ DataFrame VLE está vazio. Algumas análises podem não estar disponíveis.")
 
-# Imputação com os valores mais frequentes por região
-dataframes_oulad['studentInfo']['imd_band_2'] = dataframes_oulad['studentInfo'].apply(lambda x: dataframes_oulad['studentInfo'][dataframes_oulad['studentInfo']['region']==x['region']]['imd_band'].mode()[0] \
-    if pd.isna(x['imd_band']) else x['imd_band'], axis=1)
-new_studentInfo = df_studentinfo.drop(['imd_band'], axis=1)
+# Imputação com os valores mais frequentes por região (apenas se studentInfo não estiver vazio)
+if not df_studentinfo.empty and 'imd_band' in df_studentinfo.columns and 'region' in df_studentinfo.columns:
+    if 'studentInfo' in dataframes_oulad and not dataframes_oulad['studentInfo'].empty:
+        dataframes_oulad['studentInfo']['imd_band_2'] = dataframes_oulad['studentInfo'].apply(
+            lambda x: dataframes_oulad['studentInfo'][dataframes_oulad['studentInfo']['region']==x['region']]['imd_band'].mode()[0] 
+            if pd.isna(x['imd_band']) and len(dataframes_oulad['studentInfo'][dataframes_oulad['studentInfo']['region']==x['region']]['imd_band'].mode()) > 0 
+            else x['imd_band'], axis=1
+        )
+    
+    # Remover coluna apenas se existir
+    if 'imd_band' in df_studentinfo.columns:
+        new_studentInfo = df_studentinfo.drop(['imd_band'], axis=1)
+    else:
+        new_studentInfo = df_studentinfo.copy()
+else:
+    new_studentInfo = df_studentinfo.copy()
 show_basic_info(new_studentInfo)
 
 # Imputando valores ausentes em 'date_registration' e 'date_unregistration'
@@ -188,23 +231,71 @@ df_student_registration_copy['date_unregistration'] = df_student_registration_co
 mean_date_registration = df_student_registration_copy['date_registration'].mean()
 df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
 
-# Junção dos dados
+# Junção dos dados (apenas se os DataFrames necessários não estiverem vazios)
 @st.cache_data(ttl=3600)  # Cache por 1 hora
 def merge_dataframes():
-    vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
-    assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
-    studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
-    merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+    if df_studentvle.empty or new_vle.empty:
+        st.warning("⚠️ DataFrames VLE estão vazios. Pulando merge de VLE.")
+        vle_activities = df_studentvle.copy()
+    else:
+        try:
+            vle_activities = pd.merge(df_studentvle, new_vle, on=['code_module','code_presentation','id_site'], how='inner')
+        except Exception as e:
+            st.warning(f"⚠️ Erro ao fazer merge de VLE: {e}")
+            vle_activities = df_studentvle.copy()
+    
+    if df_studentassessment.empty or df_assessments.empty:
+        st.warning("⚠️ DataFrames de assessments estão vazios. Pulando merge de assessments.")
+        assessments_activities = df_studentassessment.copy()
+    else:
+        try:
+            assessments_activities = pd.merge(df_studentassessment, df_assessments, on='id_assessment', how='inner')
+        except Exception as e:
+            st.warning(f"⚠️ Erro ao fazer merge de assessments: {e}")
+            assessments_activities = df_studentassessment.copy()
+    
+    if vle_activities.empty or new_studentInfo.empty:
+        st.warning("⚠️ DataFrames necessários para merge estão vazios. Pulando merge com studentInfo.")
+        studentinfo_activities = vle_activities.copy()
+    else:
+        try:
+            studentinfo_activities = pd.merge(vle_activities, new_studentInfo, on=['code_module','code_presentation','id_student'], how='inner')
+        except Exception as e:
+            st.warning(f"⚠️ Erro ao fazer merge com studentInfo: {e}")
+            studentinfo_activities = vle_activities.copy()
+    
+    if studentinfo_activities.empty or assessments_activities.empty:
+        st.warning("⚠️ DataFrames necessários para merge final estão vazios.")
+        merged_df = studentinfo_activities.copy()
+    else:
+        try:
+            merged_df = pd.merge(studentinfo_activities, assessments_activities, on=['code_module','code_presentation','id_student'], how='inner')
+        except Exception as e:
+            st.warning(f"⚠️ Erro ao fazer merge final: {e}")
+            merged_df = studentinfo_activities.copy()
+    
     return merged_df
 
 merged_df = merge_dataframes()
 st.session_state['merged_df'] = merged_df
 
-# Merge with courses dataframe
-merged_df = pd.merge(merged_df, df_courses, on=['code_presentation'], how='inner')
+# Merge with courses dataframe (apenas se não estiver vazio)
+if not merged_df.empty and not df_courses.empty:
+    try:
+        merged_df = pd.merge(merged_df, df_courses, on=['code_presentation'], how='inner')
+    except Exception as e:
+        st.warning(f"⚠️ Erro ao fazer merge com courses: {e}")
+elif df_courses.empty:
+    st.warning("⚠️ DataFrame courses está vazio. Pulando merge com courses.")
 
 # Merge with studentRegistration dataframe (usando a versão processada com variável cancelou)
-merged_df = pd.merge(merged_df, df_student_registration_copy, on=['code_presentation','id_student'], how='inner')
+if not merged_df.empty and not df_student_registration_copy.empty:
+    try:
+        merged_df = pd.merge(merged_df, df_student_registration_copy, on=['code_presentation','id_student'], how='inner')
+    except Exception as e:
+        st.warning(f"⚠️ Erro ao fazer merge com studentRegistration: {e}")
+elif df_student_registration_copy.empty:
+    st.warning("⚠️ DataFrame studentRegistration está vazio. Pulando merge com studentRegistration.")
 
 # Imputing missing values for numerical columns with the mean
 for col in merged_df.select_dtypes(include=np.number).columns:
