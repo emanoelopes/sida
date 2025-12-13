@@ -951,24 +951,55 @@ def calcular_feature_importance_uci():
             status_text.empty()
             return pd.DataFrame()
         
+        # Garantir que todas as colunas tenham tipos corretos
+        # Converter colunas não numéricas para object (categóricas)
+        for col in X_test.columns:
+            if X_test[col].dtype not in [np.number, 'object']:
+                # Tentar converter para numérico primeiro
+                try:
+                    X_test[col] = pd.to_numeric(X_test[col], errors='coerce')
+                    # Se ainda não for numérico, converter para string/object
+                    if X_test[col].dtype not in [np.number]:
+                        X_test[col] = X_test[col].astype(str).astype('object')
+                except:
+                    X_test[col] = X_test[col].astype(str).astype('object')
+        
+        # Garantir que colunas numéricas não tenham valores infinitos
+        numeric_cols = X_test.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            X_test[col] = pd.to_numeric(X_test[col], errors='coerce').fillna(0)
+            X_test[col] = X_test[col].replace([np.inf, -np.inf], 0)
+        
+        # Garantir que colunas categóricas sejam do tipo object
+        categorical_cols = X_test.select_dtypes(include=['object']).columns
+        for col in categorical_cols:
+            X_test[col] = X_test[col].astype(str).replace('nan', np.nan).astype('object')
+        
         status_text.text("🔄 Calculando feature importance...")
         progress_bar.progress(80)
         
         # OTIMIZAÇÃO: Usar todos os cores disponíveis
-        result = permutation_importance(
-            model, X_test, y_test, 
-            n_repeats=10,  # Manter 10 para UCI (é pequeno)
-            random_state=42, 
-            n_jobs=-1  # Usar todos os cores disponíveis
-        )
-        sorted_idx = result.importances_mean.argsort()
-        
-        status_text.text("✅ Finalizando...")
-        progress_bar.progress(95)
-        
-        # Criar DataFrame com resultados reais
-        features = X_test.columns[sorted_idx]
-        importance = result.importances_mean[sorted_idx]
+        try:
+            result = permutation_importance(
+                model, X_test, y_test, 
+                n_repeats=10,  # Manter 10 para UCI (é pequeno)
+                random_state=42, 
+                n_jobs=-1  # Usar todos os cores disponíveis
+            )
+            sorted_idx = result.importances_mean.argsort()
+            
+            status_text.text("✅ Finalizando...")
+            progress_bar.progress(95)
+            
+            # Criar DataFrame com resultados reais
+            features = X_test.columns[sorted_idx]
+            importance = result.importances_mean[sorted_idx]
+        except Exception as e:
+            # Se permutation_importance falhar, retornar DataFrame vazio
+            st.warning(f"Erro ao calcular feature importance: {e}")
+            progress_bar.empty()
+            status_text.empty()
+            return pd.DataFrame()
         
         df_result = pd.DataFrame({
             'feature': features,
@@ -1017,18 +1048,21 @@ def calcular_feature_importance_oulad():
         # Remover colunas irrelevantes
         X = X.drop(['id_student', 'id_site', 'id_assessment', 'code_module', 'code_presentation', 'code_module_y', 'code_module_x'], axis=1, errors='ignore')
         
-        status_text.text("🔄 Dividindo dados...")
-        progress_bar.progress(50)
+        status_text.text("🔄 Carregando modelo...")
+        progress_bar.progress(40)
         
-        # Dividir dados
-        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-        
-        # Carregar modelo treinado
+        # Carregar modelo treinado primeiro para saber quais colunas ele espera
         model = carregar_modelo_oulad()
         if model is None:
             progress_bar.empty()
             status_text.empty()
             return pd.DataFrame()
+        
+        status_text.text("🔄 Dividindo dados...")
+        progress_bar.progress(50)
+        
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
         
         status_text.text("🔄 Limpando dados de teste...")
         progress_bar.progress(70)
@@ -1038,24 +1072,58 @@ def calcular_feature_importance_oulad():
         X_test_cleaned = X_test[~nan_rows_test].copy()
         y_test_cleaned = y_test[~nan_rows_test].copy()
         
+        # Garantir que todas as colunas tenham tipos corretos
+        # Converter colunas não numéricas para object (categóricas)
+        for col in X_test_cleaned.columns:
+            if X_test_cleaned[col].dtype not in [np.number, 'object']:
+                # Tentar converter para numérico primeiro
+                try:
+                    X_test_cleaned[col] = pd.to_numeric(X_test_cleaned[col], errors='coerce')
+                    # Se ainda não for numérico, converter para string/object
+                    if X_test_cleaned[col].dtype not in [np.number]:
+                        X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
+                except:
+                    X_test_cleaned[col] = X_test_cleaned[col].astype(str).astype('object')
+        
+        # Garantir que colunas numéricas não tenham valores infinitos
+        numeric_cols = X_test_cleaned.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            X_test_cleaned[col] = pd.to_numeric(X_test_cleaned[col], errors='coerce').fillna(0)
+            X_test_cleaned[col] = X_test_cleaned[col].replace([np.inf, -np.inf], 0)
+        
+        # Garantir que colunas categóricas sejam do tipo object
+        categorical_cols = X_test_cleaned.select_dtypes(include=['object']).columns
+        for col in categorical_cols:
+            X_test_cleaned[col] = X_test_cleaned[col].astype(str).replace('nan', np.nan).astype('object')
+        
         status_text.text("🔄 Calculando feature importance...")
         progress_bar.progress(85)
         
         # OTIMIZAÇÃO: Menos repetições e mais jobs
-        result = permutation_importance(
-            model, X_test_cleaned, y_test_cleaned, 
-            n_repeats=5,  # Reduzido de 10 para 5
-            random_state=42, 
-            n_jobs=-1  # Usar todos os cores disponíveis
-        )
-        sorted_idx = result.importances_mean.argsort()
-        
-        status_text.text("✅ Finalizando...")
-        progress_bar.progress(95)
-        
-        # Criar DataFrame com resultados reais
-        features = X_test_cleaned.columns[sorted_idx]
-        importance = result.importances_mean[sorted_idx]
+        # O modelo Pipeline fará o preprocessing automaticamente
+        try:
+            result = permutation_importance(
+                model, X_test_cleaned, y_test_cleaned, 
+                n_repeats=5,  # Reduzido de 10 para 5
+                random_state=42, 
+                n_jobs=-1  # Usar todos os cores disponíveis
+            )
+            sorted_idx = result.importances_mean.argsort()
+            
+            status_text.text("✅ Finalizando...")
+            progress_bar.progress(95)
+            
+            # Criar DataFrame com resultados reais
+            # Nota: após o preprocessing, as features podem ter mudado (OneHotEncoder cria múltiplas colunas)
+            # Vamos usar os nomes das colunas originais
+            features = X_test_cleaned.columns[sorted_idx]
+            importance = result.importances_mean[sorted_idx]
+        except Exception as e:
+            # Se permutation_importance falhar, retornar DataFrame vazio
+            st.warning(f"Erro ao calcular feature importance: {e}")
+            progress_bar.empty()
+            status_text.empty()
+            return pd.DataFrame()
         
         df_result = pd.DataFrame({
             'feature': features,
