@@ -230,22 +230,34 @@ show_basic_info(new_studentInfo)
 # Criar uma cópia explícita do dataframe para evitar SettingWithCopyWarning
 df_student_registration_copy = df_studentregistration.copy()
 
-# Criar variável binária indicando se o estudante cancelou o registro
-df_student_registration_copy['cancelou'] = df_student_registration_copy['date_unregistration'].notna().astype(int)
-
-# Preencher date_unregistration com valor alto quando ausente (para diferenciar de valores reais)
-# Usar max + 1000 para garantir que seja claramente distinto de qualquer data real
-max_date_unregistration = df_student_registration_copy['date_unregistration'].max()
-if pd.notna(max_date_unregistration):
-    valor_nao_cancelou = max_date_unregistration + 1000
+# Verificar se o DataFrame não está vazio e se as colunas existem antes de processá-las
+if not df_student_registration_copy.empty and 'date_unregistration' in df_student_registration_copy.columns:
+    # Criar variável binária indicando se o estudante cancelou o registro
+    df_student_registration_copy['cancelou'] = df_student_registration_copy['date_unregistration'].notna().astype(int)
+    
+    # Preencher date_unregistration com valor alto quando ausente (para diferenciar de valores reais)
+    # Usar max + 1000 para garantir que seja claramente distinto de qualquer data real
+    max_date_unregistration = df_student_registration_copy['date_unregistration'].max()
+    if pd.notna(max_date_unregistration):
+        valor_nao_cancelou = max_date_unregistration + 1000
+    else:
+        # Se todos os valores forem NaN, usar um valor padrão alto
+        valor_nao_cancelou = 999999
+    df_student_registration_copy['date_unregistration'] = df_student_registration_copy['date_unregistration'].fillna(valor_nao_cancelou)
 else:
-    # Se todos os valores forem NaN, usar um valor padrão alto
-    valor_nao_cancelou = 999999
-df_student_registration_copy['date_unregistration'] = df_student_registration_copy['date_unregistration'].fillna(valor_nao_cancelou)
+    # Se a coluna não existir ou o DataFrame estiver vazio, criar uma coluna 'cancelou' com valores padrão
+    if not df_student_registration_copy.empty:
+        df_student_registration_copy['cancelou'] = 0
+        st.warning("⚠️ Coluna 'date_unregistration' não encontrada. Usando valores padrão para 'cancelou'.")
+    else:
+        st.warning("⚠️ DataFrame 'studentRegistration' está vazio. Pulando processamento de datas de registro.")
 
 # Preencher date_registration com a média quando ausente
-mean_date_registration = df_student_registration_copy['date_registration'].mean()
-df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
+if not df_student_registration_copy.empty and 'date_registration' in df_student_registration_copy.columns:
+    mean_date_registration = df_student_registration_copy['date_registration'].mean()
+    df_student_registration_copy['date_registration'] = df_student_registration_copy['date_registration'].fillna(mean_date_registration)
+else:
+    st.warning("⚠️ Coluna 'date_registration' não encontrada.")
 
 # Junção dos dados (apenas se os DataFrames necessários não estiverem vazios)
 @st.cache_data(ttl=3600)  # Cache por 1 hora
