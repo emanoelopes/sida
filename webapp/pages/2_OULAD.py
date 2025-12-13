@@ -375,13 +375,17 @@ if 'score' in merged_df.columns and 'id_student' in merged_df.columns:
     plt.title('Distribuição de Notas Finais dos Estudantes (Únicos)')
     plt.xlabel('Nota Final Média')
     plt.ylabel('Número de Estudantes Únicos')
-else:
+    st.pyplot(plt)
+    plt.clf()
+elif 'score' in merged_df.columns:
     sns.histplot(merged_df['score'], bins=30, kde=True)
     plt.title('Distribuição de Notas Finais dos Estudantes')
     plt.xlabel('Nota Final')
     plt.ylabel('Frequência')
-st.pyplot(plt)
-plt.clf()
+    st.pyplot(plt)
+    plt.clf()
+else:
+    st.warning("⚠️ Coluna 'score' não encontrada nos dados. Não é possível exibir a distribuição de notas.")
 
 '''
 Com base no histograma, a maioria dos estudantes obteve notas finais elevadas, concentrando-se principalmente na faixa de 70 a 90. Há uma distribuição que parece ser bimodal ou multimodal, com picos notáveis e uma frequência menor de notas mais baixas.
