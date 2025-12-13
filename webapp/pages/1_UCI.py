@@ -22,35 +22,54 @@ st.divider()
 O UCI Machine Learning Repository é uma fonte valiosa de conjuntos de dados para a comunidade de aprendizado de máquina, promovendo a pesquisa e o avanço na área de ciência de dados.
 """
 
-datasets_uci_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
-#st.write(f"Path dos datasets: {datasets_uci_path}")
-
-# Português
-por_path = os.path.join(datasets_uci_path, 'student-por.csv')
-por = pd.read_csv(por_path, sep=';')
-# Matemática
-mat_path = os.path.join(datasets_uci_path, 'student-mat.csv')
-mat = pd.read_csv(mat_path, sep=';')
-
-# Adicionando coluna com o conjunto de dados de origem
-mat['origem'] = 'mat'
-por['origem'] = 'por'
-
-# Concatenando os dataframes
-
+# Tentar carregar dos pickles primeiro (já estão no Git LFS)
 @st.cache_data(ttl=3600)  # Cache por 1 hora
-def concat():
-    df = pd.concat([mat, por])
-    return df
+def carregar_dados_uci():
+    """Carrega dados UCI, tentando primeiro dos pickles, depois dos CSVs"""
+    from src.carregar_dados import carregar_uci_dados, carregar_dados_uci_raw
+    
+    # Tentar carregar do pickle primeiro
+    try:
+        df = carregar_uci_dados()
+        if df is not None and not df.empty:
+            return df
+    except Exception as e:
+        st.warning(f"Não foi possível carregar do pickle: {e}")
+    
+    # Fallback: tentar carregar dos CSVs
+    try:
+        df = carregar_dados_uci_raw()
+        return df
+    except FileNotFoundError as e:
+        st.error(f"""
+        **Erro ao carregar dados UCI:**
+        
+        Os arquivos de dados não foram encontrados. Verifique se:
+        1. Os arquivos pickle (`uci_dataframe.pkl`) estão no repositório
+        2. Os arquivos CSV estão em `datasets/uci_data/`
+        
+        Erro: {e}
+        """)
+        st.stop()
+    except Exception as e:
+        st.error(f"Erro inesperado ao carregar dados: {e}")
+        st.stop()
 
-df = concat()
+df = carregar_dados_uci()
 
 st.session_state['df_uci'] = df
-# Transformando valores e tipos de dados
-df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'}).astype(str)
-df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'}).astype(str)
-df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']] = \
-df[['Medu','Fedu','famrel','goout','Dalc','Walc','health']].astype('object')
+
+# Transformando valores e tipos de dados (apenas se ainda não foram transformados)
+# O pickle já vem processado, mas os CSVs precisam ser transformados
+if 'traveltime' in df.columns and df['traveltime'].dtype in ['int64', 'int32']:
+    df['traveltime'] = df['traveltime'].map({1: '<15m', 2: '15-30m', 3: '30-1h', 4: '>1h'}).astype(str)
+if 'studytime' in df.columns and df['studytime'].dtype in ['int64', 'int32']:
+    df['studytime'] = df['studytime'].map({1: '<2h', 2: '2-5h', 3: '5-10h', 4: '>10h'}).astype(str)
+if all(col in df.columns for col in ['Medu','Fedu','famrel','goout','Dalc','Walc','health']):
+    # Aplicar apenas se ainda não são object
+    for col in ['Medu','Fedu','famrel','goout','Dalc','Walc','health']:
+        if df[col].dtype not in ['object', 'string']:
+            df[col] = df[col].astype('object')
 
 st.markdown("## Explorando os valores numéricos")
 numeric_df = df.select_dtypes('number')

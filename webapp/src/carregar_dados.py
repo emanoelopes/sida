@@ -7,11 +7,17 @@ import os
 def carregar_uci_dados(pickle_path: str = "../uci_dataframe.pkl") -> pd.DataFrame:
     """Carrega dados UCI processados do arquivo pickle"""
     # Tentar diferentes caminhos para o arquivo pickle
+    base_path = Path(__file__).parent.parents[1]
     possible_paths = [
         pickle_path,
         f"../{pickle_path}",
         f"../../{pickle_path}",
-        Path(__file__).parent.parents[1] / "uci_dataframe.pkl"
+        base_path / "uci_dataframe.pkl",
+        base_path / "uci.pkl",  # Nome alternativo
+        Path("/app/uci_dataframe.pkl"),  # Hugging Face Space
+        Path("/app/uci.pkl"),  # Hugging Face Space - nome alternativo
+        Path.cwd() / "uci_dataframe.pkl",
+        Path.cwd() / "uci.pkl",
     ]
     
     df = None
@@ -77,14 +83,35 @@ def carregar_oulad_dados(pickle_path: str = "../oulad_data.pkl") -> pd.DataFrame
 
 def carregar_dados_uci_raw():
     """Carrega dados UCI brutos dos arquivos CSV"""
-    datasets_path = Path(__file__).parent.parents[1] / 'datasets' / 'uci_data'
+    base_path = Path(__file__).parent.parents[1]
+    possible_paths = [
+        base_path / 'datasets' / 'uci_data',
+        Path.cwd() / 'datasets' / 'uci_data',
+        Path('/app/datasets/uci_data'),  # Hugging Face Space
+    ]
+    
+    datasets_path = None
+    for path in possible_paths:
+        if path.exists() and (path / 'student-por.csv').exists():
+            datasets_path = path
+            break
+    
+    if datasets_path is None:
+        raise FileNotFoundError(
+            f"Diretório de datasets UCI não encontrado. Procurado em: {possible_paths}\n"
+            "Os arquivos CSV não estão disponíveis. Use os arquivos pickle em vez disso."
+        )
     
     # Português
-    por_path = os.path.join(datasets_path, 'student-por.csv')
+    por_path = datasets_path / 'student-por.csv'
+    if not por_path.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {por_path}")
     por = pd.read_csv(por_path, sep=';')
     
     # Matemática
-    mat_path = os.path.join(datasets_path, 'student-mat.csv')
+    mat_path = datasets_path / 'student-mat.csv'
+    if not mat_path.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {mat_path}")
     mat = pd.read_csv(mat_path, sep=';')
     
     # Adicionando coluna com o conjunto de dados de origem

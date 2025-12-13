@@ -20,29 +20,62 @@ st.set_page_config(
 #st.markdown('# Informações Básicas dos Dados do OULAD')
 #st.divider()
 
-datasets_oulad_path = Path(__file__).parent.parents[1] / 'datasets' / 'oulad_data'
-#st.write(f"Path dos datasets: {datasets_oulad_path}")
+# Tentar carregar dos pickles primeiro (já estão no Git LFS)
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def carregar_dados_oulad():
+    """Carrega dados OULAD, tentando primeiro dos pickles, depois dos CSVs"""
+    from src.carregar_dados import carregar_oulad_dados, carregar_dados_oulad_raw
+    
+    # Tentar carregar do pickle primeiro
+    try:
+        df = carregar_oulad_dados()
+        if df is not None and not df.empty:
+            # Se carregou do pickle, retornar como dict para compatibilidade
+            return {'oulad_processed': df}
+    except Exception as e:
+        st.warning(f"Não foi possível carregar do pickle: {e}")
+    
+    # Fallback: tentar carregar dos CSVs
+    try:
+        dataframes_oulad = carregar_dados_oulad_raw()
+        return dataframes_oulad
+    except FileNotFoundError as e:
+        st.error(f"""
+        **Erro ao carregar dados OULAD:**
+        
+        Os arquivos de dados não foram encontrados. Verifique se:
+        1. Os arquivos pickle (`oulad_data.pkl` ou `oulad_dataframe.pkl`) estão no repositório
+        2. Os arquivos CSV estão em `datasets/oulad_data/`
+        
+        Erro: {e}
+        """)
+        st.stop()
+    except Exception as e:
+        st.error(f"Erro inesperado ao carregar dados: {e}")
+        st.stop()
 
-dataframes_oulad = {}
+dataframes_oulad = carregar_dados_oulad()
 
-for filename in os.listdir(datasets_oulad_path):
-    if filename.endswith('.csv'):
-        file_path = os.path.join(datasets_oulad_path, filename)
-        df_name = os.path.splitext(filename)[0] # Nome do dataframe será o nome do arquivo sem a extensão
-        try:
-            dataframes_oulad[df_name] = pd.read_csv(file_path, sep=',', encoding='ISO-8859-1')
-            print(f"Arquivo '{filename}' carregado com sucesso como dataframe '{df_name}'.")
-        except Exception as e:
-            print(f"Erro ao carregar o arquivo '{filename}': {e}")
-
-
-df_assessments = dataframes_oulad['assessments'].head(10_000)
-df_courses = dataframes_oulad['courses'].head(10_000)
-df_vle = dataframes_oulad['vle'].head(10_000)
-df_studentinfo = dataframes_oulad['studentInfo'].head(10_000)
-df_studentregistration = dataframes_oulad['studentRegistration'].head(10_000)
-df_studentassessment = dataframes_oulad['studentAssessment'].head(10_000)
-df_studentvle = dataframes_oulad['studentVle'].head(10_000)
+# Se carregou do pickle processado, criar dataframes simulados para compatibilidade
+if 'oulad_processed' in dataframes_oulad:
+    df_processed = dataframes_oulad['oulad_processed']
+    # Criar dataframes vazios ou usar o processado conforme necessário
+    df_assessments = df_processed.head(10_000) if 'assessments' in df_processed.columns else pd.DataFrame()
+    df_courses = df_processed.head(10_000) if 'courses' in df_processed.columns else pd.DataFrame()
+    df_vle = df_processed.head(10_000) if 'vle' in df_processed.columns else pd.DataFrame()
+    df_studentinfo = df_processed.head(10_000) if 'studentInfo' in df_processed.columns else pd.DataFrame()
+    df_studentregistration = df_processed.head(10_000) if 'studentRegistration' in df_processed.columns else pd.DataFrame()
+    df_studentassessment = df_processed.head(10_000) if 'studentAssessment' in df_processed.columns else pd.DataFrame()
+    df_studentvle = df_processed.head(10_000) if 'studentVle' in df_processed.columns else pd.DataFrame()
+else:
+    # Carregou dos CSVs originais
+    df_assessments = dataframes_oulad.get('assessments', pd.DataFrame()).head(10_000)
+    df_courses = dataframes_oulad.get('courses', pd.DataFrame()).head(10_000)
+    df_vle = dataframes_oulad.get('vle', pd.DataFrame()).head(10_000)
+    df_studentinfo = dataframes_oulad.get('studentInfo', pd.DataFrame()).head(10_000)
+    df_studentregistration = dataframes_oulad.get('studentRegistration', pd.DataFrame()).head(10_000)
+    df_studentassessment = dataframes_oulad.get('studentAssessment', pd.DataFrame()).head(10_000)
+    df_studentvle = dataframes_oulad.get('studentVle', pd.DataFrame()).head(10_000)
 
 #function to display basic info for a given dataframe
 def show_basic_info(df):
