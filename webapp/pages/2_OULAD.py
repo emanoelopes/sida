@@ -1,4 +1,11 @@
 from pathlib import Path
+import sys
+
+# Adicionar o diretório webapp ao path do Python
+webapp_dir = Path(__file__).parent.parent
+if str(webapp_dir) not in sys.path:
+    sys.path.insert(0, str(webapp_dir))
+
 import streamlit as st
 import pandas as pd
 import os
@@ -99,6 +106,10 @@ else:
 
 #function to display basic info for a given dataframe
 def show_basic_info(df):
+    if df.empty or len(df.columns) == 0:
+        print("DataFrame vazio - não é possível exibir informações")
+        return
+    
     print("========================================================================================================")
     print("HEAD:")
     print(df.head(3))
@@ -110,7 +121,12 @@ def show_basic_info(df):
     print(df.info())
     print("--------------------------------------------------------------------------------------------------------")
     print("DESCRIBE:")
-    print(df.describe().T.round(2))
+    # Verificar se há colunas numéricas antes de descrever
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if len(numeric_cols) > 0:
+        print(df.describe().T.round(2))
+    else:
+        print("Nenhuma coluna numérica para descrever")
     print("--------------------------------------------------------------------------------------------------------")
     print("NULL VALUES:")
     print(df.isnull().sum())
@@ -325,7 +341,11 @@ Esta página apresenta uma Análise Exploratória dos Dados do OULAD (Open Unive
 '''
 
 st.markdown("## Descrição estatísticas das colunas numéricas:")
-st.dataframe(merged_df.select_dtypes('number').describe().T.round(2))
+numeric_df = merged_df.select_dtypes('number')
+if not numeric_df.empty and len(numeric_df.columns) > 0:
+    st.dataframe(numeric_df.describe().T.round(2))
+else:
+    st.warning("⚠️ Não há colunas numéricas disponíveis para análise estatística.")
 
 '''
 A grande diferença entre a mediana (≈2) e a média (≈4.65) do número de cliques indica que a maioria dos estudantes tem engajamento moderado, mas uma pequena parcela é extremamente ativa, elevando a média geral.
@@ -399,7 +419,11 @@ A atividade mais realizada é a 'Conteúdo Externo' com quase o dobro de execuç
 
 st.markdown('## Explorando valores categóricos')
 ## Explorando valores categóricos
-st.dataframe(merged_df.select_dtypes('object').describe().T)
+categorical_df = merged_df.select_dtypes('object')
+if not categorical_df.empty and len(categorical_df.columns) > 0:
+    st.dataframe(categorical_df.describe().T)
+else:
+    st.warning("⚠️ Não há colunas categóricas disponíveis para análise.")
 
 """
 Por meio da análise dos dados categóricos, os estudantes são, na sua maioria, do gênero masculino, até 35 anos, que realizaram a atividade do tipo fórum na plataforma e foram aprovados.
@@ -535,19 +559,81 @@ def treinar_modelo_oulad(X_train, y_train):
     X_train_cleaned = X_train[~nan_rows_train].copy()
     y_train_cleaned = y_train[~nan_rows_train].copy()
     
-    # Identify categorical and numerical columns
-    categorical_cols = X_train_cleaned.select_dtypes(include='object').columns
-    numerical_cols = X_train_cleaned.select_dtypes(include=np.number).columns
+    # Identificar colunas categóricas de forma mais robusta
+    # Incluir 'object', 'category' e verificar colunas que contêm strings
+    categorical_cols = []
+    numerical_cols = []
+    
+    # Lista de colunas conhecidas como categóricas no OULAD
+    known_categorical = ['activity_type', 'gender', 'region', 'highest_education', 
+                        'imd_band', 'age_band', 'disability', 'code_module', 
+                        'code_presentation', 'assessment_type']
+    
+    for col in X_train_cleaned.columns:
+        # Verificar se é numérico puro
+        if pd.api.types.is_numeric_dtype(X_train_cleaned[col]):
+            # Verificar se não contém strings (pode ter sido convertido incorretamente)
+            try:
+                pd.to_numeric(X_train_cleaned[col], errors='raise')
+                numerical_cols.append(col)
+            except (ValueError, TypeError):
+                # Se não pode ser convertido para numérico, é categórico
+                categorical_cols.append(col)
+        else:
+            # É categórico (object, category, ou string)
+            categorical_cols.append(col)
+    
+    # Garantir que colunas conhecidas como categóricas estejam na lista
+    for col in known_categorical:
+        if col in X_train_cleaned.columns and col not in categorical_cols:
+            categorical_cols.append(col)
+            if col in numerical_cols:
+                numerical_cols.remove(col)
+    
+    # Converter todas as colunas categóricas para string explicitamente
+    for col in categorical_cols:
+        if col in X_train_cleaned.columns:
+            X_train_cleaned[col] = X_train_cleaned[col].astype(str)
+            # Substituir 'nan' string por np.nan
+            X_train_cleaned[col] = X_train_cleaned[col].replace('nan', np.nan)
+            X_train_cleaned[col] = X_train_cleaned[col].replace('None', np.nan)
+    
+    # Converter colunas numéricas para float, tratando inf
+    for col in numerical_cols:
+        if col in X_train_cleaned.columns:
+            X_train_cleaned[col] = pd.to_numeric(X_train_cleaned[col], errors='coerce')
+            # Substituir inf por NaN
+            X_train_cleaned[col] = X_train_cleaned[col].replace([np.inf, -np.inf], np.nan)
+    
+    # Remover colunas que ficaram vazias após limpeza
+    cols_to_drop = []
+    for col in X_train_cleaned.columns:
+        if X_train_cleaned[col].isna().all():
+            cols_to_drop.append(col)
+    
+    if cols_to_drop:
+        X_train_cleaned = X_train_cleaned.drop(columns=cols_to_drop)
+        categorical_cols = [c for c in categorical_cols if c not in cols_to_drop]
+        numerical_cols = [c for c in numerical_cols if c not in cols_to_drop]
+    
+    # Garantir que temos pelo menos algumas colunas
+    if len(categorical_cols) == 0 and len(numerical_cols) == 0:
+        raise ValueError("Nenhuma coluna válida encontrada após limpeza dos dados")
+    
+    # Criar transformers apenas para colunas que existem
+    transformers = []
+    if len(numerical_cols) > 0:
+        transformers.append(('num', SimpleImputer(strategy='mean'), numerical_cols))
+    if len(categorical_cols) > 0:
+        transformers.append(('cat', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),
+            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))]), categorical_cols))
     
     # Create a column transformer to apply different preprocessing steps to different column types
+    # Usar 'drop' em vez de 'passthrough' para garantir que todas as colunas sejam processadas
     preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', SimpleImputer(strategy='mean'), numerical_cols),
-            ('cat', Pipeline(steps=[
-                ('imputer', SimpleImputer(strategy='most_frequent')),
-                ('onehot', OneHotEncoder(handle_unknown='ignore'))]), categorical_cols)
-        ],
-        remainder='passthrough' # Keep other columns (numeric) as they are
+        transformers=transformers,
+        remainder='drop'  # Drop any columns not explicitly handled
     )
     
     # Create a pipeline that first preprocesses the data and then trains the model
