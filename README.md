@@ -1,6 +1,6 @@
-# Clareia: Sistema de Análide de Dados Educacionais
+# CLAREIA: UM SISTEMA DE IDENTIFICAÇÃO DE DIFICULDADES DE APRENDIZAGEM POR MEIO DA CIÊNCIA DE DADOS EDUCACIONAIS
 
-Produto Educacional Digital para compor os requisistos exigidos pelo Mestrado Profissional em Tecnologia Educacional da Universidade Federal do Ceará (UFC).
+Produto Educacional Digital desenvolvido durante o Mestrado Profissional em Tecnologia Educacional do Programa de Pós-Graduação em Tecnoliga Educacional (PPGTE) da Universidade Federal do Ceará (UFC).
 
 ## 🐳 Execução com Docker (Recomendado)
 
