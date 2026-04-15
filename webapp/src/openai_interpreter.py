@@ -79,7 +79,7 @@ def gerar_interpretacao_traduzida(tipo_grafico: str, dados: Dict[str, Any]) -> s
         🎯 **Gráfico Radar - Comparação Individual**
         
         Este gráfico radar compara o desempenho do aluno selecionado com a média da turma.
-        Áreas onde o aluno está acima da média indicam pontos fortes. Áreas abaixo da média
+        Áreas onde o aluno está acima da média indicam pontos fortes, exceto para a quantidade de faltas. Áreas abaixo da média
         podem indicar necessidades de apoio pedagógico.
         """
     }
