@@ -173,7 +173,7 @@ if 'analise_resultados' in st.session_state and 'user_data_uploaded' in st.sessi
     st.info("""
     **Sobre a Análise Exploratória Interativa:**
     
-    Esta ferramenta permite que você explore seus dados livremente, similar ao **Tableau** ou **Power BI**, mas diretamente aqui no navegador.
+    Esta ferramenta permite que você explore seus dados livremente diretamente no navegador.
     
     - 🖱️ **Arraste e Solte**: Crie gráficos arrastando colunas.
     - 📊 **Visualização Dinâmica**: Explore tendências e padrões instantaneamente.
