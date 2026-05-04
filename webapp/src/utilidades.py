@@ -1273,10 +1273,14 @@ def criar_grafico_feature_importance_uci():
         return None
     
     fig, ax = plt.subplots(figsize=(10, 8))
-    bars = ax.barh(df_importance['feature'], df_importance['importance'], color='skyblue')
-    ax.set_title('Importância das Features - Dataset UCI', fontsize=14, fontweight='bold')
+    # Tradução amigável para evitar nomes técnicos como "G3", "Fedu", "Medu"
+    df_importance['feature_pt'] = df_importance['feature'].map(
+        lambda f: traduzir_nome_feature(str(f), dataset_origem='UCI')
+    )
+    bars = ax.barh(df_importance['feature_pt'], df_importance['importance'], color='skyblue')
+    ax.set_title('Importância das Variáveis - Dataset UCI', fontsize=14, fontweight='bold')
     ax.set_xlabel('Importância')
-    ax.set_ylabel('Features')
+    ax.set_ylabel('Variáveis')
     
     # Adicionar valores nas barras
     for i, (bar, importance) in enumerate(zip(bars, df_importance['importance'])):
@@ -1292,33 +1296,14 @@ def criar_grafico_feature_importance_oulad():
     if df_importance.empty:
         return None
     
-    # Tradução amigável das variáveis para exibição
-    feature_translation = {
-        'date_unregistration': 'Data de cancelamento',
-        'date_registration': 'Data de registro',
-        'age_band': 'Faixa etária',
-        'studied_credits': 'Créditos cursados',
-        'studied_credits_x': 'Créditos cursados',
-        'studied_credits_y': 'Créditos cursados',
-        'score': 'Nota',
-        'score_x': 'Nota',
-        'score_y': 'Nota',
-        'activity_type': 'Tipo de atividade',
-        'clicks': 'Cliques',
-        'gender': 'Gênero',
-        'region': 'Região',
-        'disability': 'Deficiência',
-        'highest_education': 'Escolaridade',
-        'imd_band': 'Faixa IMD',
-        'num_of_prev_attempts': 'Tentativas anteriores',
-        'module_presentation_length': 'Duração do módulo',
-        'cancelou': 'Cancelou',
-    }
-    df_importance['feature_pt'] = df_importance['feature'].map(feature_translation).fillna(df_importance['feature'])
+    # Mesma lógica do UCI: traduzir nomes técnicos para rótulos amigáveis.
+    df_importance['feature_pt'] = df_importance['feature'].map(
+        lambda f: traduzir_nome_feature(str(f), dataset_origem='OULAD')
+    )
     
     fig, ax = plt.subplots(figsize=(10, 8))
     bars = ax.barh(df_importance['feature_pt'], df_importance['importance'], color='lightcoral')
-    ax.set_title('Importância das Features - Dataset OULAD', fontsize=14, fontweight='bold')
+    ax.set_title('Importância das Variáveis - Dataset OULAD', fontsize=14, fontweight='bold')
     ax.set_xlabel('Importância')
     ax.set_ylabel('Variáveis')
     

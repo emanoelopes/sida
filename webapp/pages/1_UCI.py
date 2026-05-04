@@ -143,10 +143,13 @@ st.markdown('## Distribuição das notas')
 fig, ax = plt.subplots(1, 3, figsize=(18, 5))
 sns.histplot(data=df, x='G1', bins=20, kde=True, ax=ax[0])
 ax[0].set_title('Distribuição das Notas G1')
+ax[0].set_xlabel('Nota do 1º Período')
 sns.histplot(data=df, x='G2', bins=20, kde=True, ax=ax[1])
 ax[1].set_title('Distribuição das Notas G2')
+ax[1].set_xlabel('Nota do 2º Período')
 sns.histplot(data=df, x='G3', bins=20, kde=True, ax=ax[2])
 ax[2].set_title('Distribuição das Notas G3')
+ax[2].set_xlabel('Nota Final')
 plt.tight_layout()
 st.pyplot(fig)
 plt.clf()   
@@ -174,6 +177,7 @@ fig, ax = plt.subplots(figsize=(18, 8))
 
 sns.histplot(data=df, ax=ax, x='G3', binwidth=1.0, kde=True, stat='density')
 ax.plot(xs, ys, color='red')
+ax.set_xlabel('Nota Final')
 
 fig.suptitle('Notas finais')
 st.pyplot(fig)
@@ -217,9 +221,13 @@ fig, axes = plt.subplots(1, 2, figsize=(18, 5)) # Correct way to define axes
 
 sns.boxplot(data=df, x='Fedu', y='G3', ax=axes[0], palette='rainbow')  #  Use the ax at the correct index
 axes[0].set_title('Distribuição das Notas Finais por Grau de Formação do Pai')
+axes[0].set_xlabel('Grau de Formação do Pai')
+axes[0].set_ylabel('Nota Final')
 
 sns.boxplot(data=df, x='Medu', y='G3', ax=axes[1], palette='rainbow')
 axes[1].set_title('Distribuição das Notas Finais por Grau de Formação da Mãe')
+axes[1].set_xlabel('Grau de Formação da Mãe')
+axes[1].set_ylabel('Nota Final')
 
 plt.tight_layout()
 st.pyplot(fig)
@@ -231,7 +239,9 @@ O gráfico apresenta uma relação direta do grau de formação do pai com a not
 # Nível de escolaridade da mãe
 fig, ax = plt.subplots(figsize=(22, 8))
 
-sns.violinplot(data=df, x='Medu')
+sns.violinplot(data=df, x='Medu', ax=ax)
+ax.set_xlabel('Grau de Formação da Mãe')
+ax.set_ylabel('Densidade')
 fig.suptitle('Nível de escolaridade da mãe', fontsize=20)
 st.pyplot(fig)
 

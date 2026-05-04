@@ -1,4 +1,58 @@
-<!-- 458b7da2-814b-45ad-ae30-d9404a986b68 9264002c-cf45-4fff-9818-240858d2a94e -->
+---
+name: Plano de Unificação de Datasets (UCI e OULAD)
+overview: ""
+todos:
+  - id: de760541-da8e-4842-a935-402d11cb5b52
+    content: Criar arquivo webapp/src/unificar_datasets.py com estrutura básica e imports
+    status: pending
+  - id: befdfc4e-136f-4880-824e-c33f8cc9f7d8
+    content: Implementar função mapear_colunas_uci() para renomear colunas UCI para português
+    status: pending
+  - id: 9db29ce3-b594-4465-87ec-4ca2687b00d6
+    content: Implementar função agregar_oulad_por_estudante() para agregar múltiplas linhas por estudante
+    status: pending
+  - id: 5d4e9532-5e9f-4e89-9478-0b27901bba57
+    content: Implementar função mapear_colunas_oulad() para renomear colunas OULAD agregadas para português
+    status: pending
+  - id: 669eaed0-67d8-41d9-a44e-56f3d42f4018
+    content: Implementar função adicionar_coluna_origem() para marcar fonte de dados
+    status: pending
+  - id: e3c7623b-59d5-424c-9fdc-e96e1aae3562
+    content: "**Implementar função tratar_dados_ausentes() com estratégias por tipo de coluna**"
+    status: pending
+  - id: a538607b-79ee-4ca5-9510-07b226cd345d
+    content: "**Implementar função imputar_resultado_final() para garantir target sempre preenchido**"
+    status: pending
+  - id: d53bca80-1d09-4012-bb3f-c8c5cd08d0a3
+    content: "**Implementar funções imputar_numerica_por_grupo() e imputar_categorica_por_grupo()**"
+    status: pending
+  - id: 1acf925f-a822-4914-b64e-53e57851f10c
+    content: "**Implementar funções imputar_numerica_uci() e imputar_numerica_oulad() para colunas específicas**"
+    status: pending
+  - id: a5147ef8-2e76-435a-b87d-b449f313b3cb
+    content: "**Implementar função tratar_outliers() para valores suspeitos**"
+    status: pending
+  - id: e304f105-cf0d-4797-8db3-b4b4b1c95bbd
+    content: "**Implementar função validar_imputacao() com relatório detalhado**"
+    status: pending
+  - id: 3f05864d-9da5-4385-b1f7-2934ef4cad90
+    content: Implementar função unificar_datasets() que orquestra todo o processo de unificação
+    status: pending
+  - id: ada55ae9-e38c-4d7c-9644-0b491dde7663
+    content: Implementar função salvar_dataset_unificado() para salvar em pickle e CSV
+    status: pending
+  - id: d9b50f62-f940-4465-86f9-8bca07092de7
+    content: Criar script executável gerar_dataset_unificado.py na raiz do projeto
+    status: pending
+  - id: 1e8af2d1-7f42-4c61-96fe-753869639ea1
+    content: "**Expandir validações no script executável para incluir métricas de imputação**"
+    status: pending
+  - id: fdda844c-87a9-4bff-a54f-3fa4d06227c0
+    content: Executar script e validar dataset unificado (contagem de registros, colunas, tipos)
+    status: pending
+isProject: false
+---
+
 # Plano de Unificação de Datasets (UCI e OULAD)
 
 ## Visão Geral
@@ -210,15 +264,14 @@ OULAD: '0-35', '35-55', '55<=' → converter para faixas numéricas
 **Função Principal:**
 
 1. `unificar_datasets()` - Orquestra todo o processo:
-
-   - Carrega dados brutos UCI e OULAD
-   - Aplica mapeamentos e transformações
-   - Adiciona coluna de origem
-   - Concatena DataFrames (pd.concat)
-   - **Trata dados ausentes**
-   - **Trata outliers**
-   - **Valida imputação**
-   - Retorna DataFrame unificado
+  - Carrega dados brutos UCI e OULAD
+  - Aplica mapeamentos e transformações
+  - Adiciona coluna de origem
+  - Concatena DataFrames (pd.concat)
+  - **Trata dados ausentes**
+  - **Trata outliers**
+  - **Valida imputação**
+  - Retorna DataFrame unificado
 
 **Função de Salvamento:**
 
@@ -287,21 +340,3 @@ Script deve exibir:
 - ✅ Tamanho dos arquivos gerados
 - ✅ Uso de memória do DataFrame
 
-### To-dos
-
-- [ ] Criar arquivo webapp/src/unificar_datasets.py com estrutura básica e imports
-- [ ] Implementar função mapear_colunas_uci() para renomear colunas UCI para português
-- [ ] Implementar função agregar_oulad_por_estudante() para agregar múltiplas linhas por estudante
-- [ ] Implementar função mapear_colunas_oulad() para renomear colunas OULAD agregadas para português
-- [ ] Implementar função adicionar_coluna_origem() para marcar fonte de dados
-- [ ] **Implementar função tratar_dados_ausentes() com estratégias por tipo de coluna**
-- [ ] **Implementar função imputar_resultado_final() para garantir target sempre preenchido**
-- [ ] **Implementar funções imputar_numerica_por_grupo() e imputar_categorica_por_grupo()**
-- [ ] **Implementar funções imputar_numerica_uci() e imputar_numerica_oulad() para colunas específicas**
-- [ ] **Implementar função tratar_outliers() para valores suspeitos**
-- [ ] **Implementar função validar_imputacao() com relatório detalhado**
-- [ ] Implementar função unificar_datasets() que orquestra todo o processo de unificação
-- [ ] Implementar função salvar_dataset_unificado() para salvar em pickle e CSV
-- [ ] Criar script executável gerar_dataset_unificado.py na raiz do projeto
-- [ ] **Expandir validações no script executável para incluir métricas de imputação**
-- [ ] Executar script e validar dataset unificado (contagem de registros, colunas, tipos)
